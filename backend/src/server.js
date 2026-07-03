@@ -23,12 +23,18 @@ async function main() {
   // isn't set, a temporary one is generated and printed ONCE to these logs.
   if (process.env.ADMIN_EMAIL) {
     console.log("[boot] seeding admin user…");
-    const { email, generatedPassword } = await seedAdmin(pool, {
+    const { email, generatedPassword, created, updated } = await seedAdmin(pool, {
       name: process.env.ADMIN_NAME,
       email: process.env.ADMIN_EMAIL,
       password: process.env.ADMIN_PASSWORD,
     });
-    console.log(`[boot] admin ready: ${email}`);
+    if (created) {
+      console.log(`[boot] admin created: ${email}`);
+    } else if (updated) {
+      console.log(`[boot] admin password updated (ADMIN_PASSWORD was set): ${email}`);
+    } else {
+      console.log(`[boot] admin already exists, left untouched: ${email}`);
+    }
     if (generatedPassword) {
       console.log(`[boot] TEMPORARY PASSWORD: ${generatedPassword}`);
       console.log("[boot] Save this now — it will not be shown again. Change it after first login.");
