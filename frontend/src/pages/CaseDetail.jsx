@@ -33,9 +33,9 @@ function DecodedNameplate({ result }) {
             className="mono"
             style={{
               fontSize: 12, padding: "3px 7px", borderRadius: 5,
-              background: p.matched ? "var(--teal-ink)" : "#3a2f06",
-              color: p.matched ? "var(--teal)" : "var(--amber)",
-              border: `1px solid ${p.matched ? "#0c5a5b" : "#5a4a0c"}`,
+              background: p.matched ? "var(--teal-ink)" : "var(--amber-ink)",
+              color: p.matched ? "var(--teal-deep)" : "var(--amber)",
+              border: `1px solid ${p.matched ? "var(--teal-border)" : "#f5cb8f"}`,
             }}
           >
             {p.character ?? "?"}
@@ -259,9 +259,9 @@ function ModelBuilder({ onAdd }) {
                   className="mono"
                   style={{
                     fontSize: 11.5, padding: "5px 9px", borderRadius: 6, cursor: "pointer",
-                    border: `1px solid ${checked ? "#0c5a5b" : "var(--line)"}`,
+                    border: `1px solid ${checked ? "var(--teal-border)" : "var(--line)"}`,
                     background: checked ? "var(--teal-ink)" : "var(--panel-2)",
-                    color: checked ? "var(--teal)" : "var(--text-dim)",
+                    color: checked ? "var(--teal-deep)" : "var(--text-dim)",
                   }}
                 >
                   <input

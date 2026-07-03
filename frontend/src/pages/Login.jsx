@@ -28,15 +28,14 @@ export default function Login({ onLogin }) {
 
   return (
     <div style={{
-      flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
-      background: "radial-gradient(circle at 30% 20%, #142230 0%, var(--ink) 60%)",
-      padding: 20,
+      minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+      background: "var(--bg)", padding: 20,
     }}>
       <div className="card" style={{ width: 380, padding: "36px 32px" }}>
         <svg width="34" height="34" viewBox="0 0 40 40" style={{ marginBottom: 18 }} aria-hidden="true">
           <defs>
             <linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor="#4aa3c7" /><stop offset="1" stopColor="#0d4d6b" />
+              <stop offset="0" stopColor="#2dd4bf" /><stop offset="1" stopColor="#0f766e" />
             </linearGradient>
           </defs>
           <circle cx="20" cy="20" r="19" fill="url(#lg2)" />
@@ -57,7 +56,7 @@ export default function Login({ onLogin }) {
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
           {error && (
-            <div style={{ background: "#2a1414", border: "1px solid #4a2020", color: "var(--red)", fontSize: 12.5, padding: "9px 11px", borderRadius: 8, marginBottom: 16 }}>
+            <div style={{ background: "var(--red-ink)", border: "1px solid #fecaca", color: "var(--red)", fontSize: 12.5, padding: "9px 11px", borderRadius: 8, marginBottom: 16 }}>
               {error}
             </div>
           )}

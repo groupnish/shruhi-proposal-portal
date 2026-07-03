@@ -1,23 +1,29 @@
-/* ===== Design tokens ===== */
+/* ===== Design tokens — light, clean theme ===== */
 :root {
-  --ink: #0b131c;
-  --panel: #121c28;
-  --panel-2: #182432;
-  --panel-3: #1e2c3c;
-  --line: #263444;
-  --line-soft: #1c2837;
+  --bg: #f4f5f7;
+  --panel: #ffffff;
+  --panel-2: #f8f9fb;
+  --panel-3: #eef1f4;
+  --line: #e2e5ea;
+  --line-soft: #edeff2;
+  --sidebar: #ffffff;
 
-  --teal: #1bb8b0;
-  --teal-deep: #00838a;
-  --teal-ink: #063b3d;
-  --amber: #f2a900;
-  --amber-ink: #3a2f06;
-  --red: #ff6b6b;
-  --green: #3fb950;
+  --teal: #0d9488;
+  --teal-deep: #0f766e;
+  --teal-ink: #ecfdf9;
+  --teal-border: #99e6db;
+  --amber: #b45309;
+  --amber-ink: #fef3e0;
+  --red: #dc2626;
+  --red-ink: #fef2f2;
+  --green: #15803d;
+  --green-ink: #eefaf1;
+  --violet: #6d28d9;
+  --violet-ink: #f3effc;
 
-  --text: #e7eef4;
-  --text-dim: #8da3b8;
-  --text-faint: #5d7188;
+  --text: #1c2128;
+  --text-dim: #5b6472;
+  --text-faint: #98a0ac;
 
   --display: "Space Grotesk", system-ui, sans-serif;
   --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -27,16 +33,16 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {
-  background: var(--ink);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
-#root { min-height: 100vh; display: flex; flex-direction: column; }
+#root { min-height: 100vh; }
 
-h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; letter-spacing: -0.01em; margin: 0; color: var(--text); }
 
 button {
   font: inherit;
@@ -52,23 +58,23 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 
 .btn-primary {
   background: var(--teal-deep);
-  color: #eafffd;
+  color: #ffffff;
   font-weight: 600;
   padding: 9px 16px;
   font-size: 13px;
 }
-.btn-primary:hover { filter: brightness(1.12); }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .btn-ghost {
-  background: transparent;
+  background: #ffffff;
   border-color: var(--line);
   color: var(--text-dim);
   padding: 9px 16px;
   font-size: 13px;
   font-weight: 600;
 }
-.btn-ghost:hover { color: var(--text); border-color: var(--text-faint); }
+.btn-ghost:hover { color: var(--text); border-color: #c7cdd6; background: var(--panel-2); }
 
 label.fl {
   display: block;
@@ -85,18 +91,19 @@ input, textarea, select {
   font: inherit;
   font-size: 13.5px;
   color: var(--text);
-  background: var(--panel-2);
+  background: #ffffff;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 10px 11px;
 }
 input::placeholder, textarea::placeholder { color: var(--text-faint); }
-input:focus, textarea:focus, select:focus { outline: none; border-color: var(--teal-deep); box-shadow: 0 0 0 3px rgba(27,184,176,.14); }
+input:focus, textarea:focus, select:focus { outline: none; border-color: var(--teal-deep); box-shadow: 0 0 0 3px rgba(13,148,136,.12); }
+input:disabled, select:disabled { background: var(--panel-2); color: var(--text-faint); }
 
 select {
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%238da3b8'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%2398a0ac'/></svg>");
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 30px;
@@ -104,7 +111,7 @@ select {
 
 .mono { font-family: var(--mono); }
 
-/* stamped case-reference chip — echoes the offer-ref format from the Phase 1 doc */
+/* stamped case-reference chip */
 .ref-stamp {
   display: inline-flex;
   align-items: center;
@@ -112,21 +119,32 @@ select {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.3px;
-  color: var(--teal);
+  color: var(--teal-deep);
   background: var(--teal-ink);
-  border: 1px solid #0c5a5b;
+  border: 1px solid var(--teal-border);
   border-radius: 6px;
   padding: 3px 8px;
 }
 
-/* stage dot + label, shared vocabulary with the tracker's colors */
+/* stage dot + label */
 .stage-pill { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-dim); }
 .stage-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
 
 .card {
   background: var(--panel);
-  border: 1px solid var(--line-soft);
-  border-radius: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(20, 24, 30, 0.04);
+}
+
+/* KPI-style stat card with colored left accent, matching the reference dashboard look */
+.stat-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent, var(--teal));
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 2px rgba(20, 24, 30, 0.04);
 }
 
 .empty-state {
