@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api.js";
+import logo from "../assets/logo.png";
 
 export default function Login({ onLogin }) {
   const [email, setEmail] = useState("");
@@ -32,15 +33,7 @@ export default function Login({ onLogin }) {
       background: "var(--bg)", padding: 20,
     }}>
       <div className="card" style={{ width: 380, padding: "36px 32px" }}>
-        <svg width="34" height="34" viewBox="0 0 40 40" style={{ marginBottom: 18 }} aria-hidden="true">
-          <defs>
-            <linearGradient id="lg2" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor="#2dd4bf" /><stop offset="1" stopColor="#0f766e" />
-            </linearGradient>
-          </defs>
-          <circle cx="20" cy="20" r="19" fill="url(#lg2)" />
-          <path d="M13 11h11a4 4 0 0 1 0 8H17l11 10H17a4 4 0 0 1 0-8h7L13 11z" fill="#fff" />
-        </svg>
+        <img src={logo} alt="Shruhi Instrumentation" style={{ height: 56, marginBottom: 18 }} />
         <h1 style={{ fontSize: 21, marginBottom: 4 }}>Shruhi Proposal Portal</h1>
         <p style={{ color: "var(--text-faint)", fontSize: 12.5, margin: "0 0 26px", letterSpacing: 0.3, textTransform: "uppercase" }}>
           Siemens Process Instrumentation — South Gujarat

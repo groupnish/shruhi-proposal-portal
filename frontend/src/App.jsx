@@ -39,7 +39,7 @@ export default function App() {
     <div style={{ display: "flex", minHeight: "100vh" }}>
       <Sidebar user={user} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <TopBar user={user} onLogout={logout} title="Shruhi Proposal Portal" />
+        <TopBar user={user} onLogout={logout} title="Proposal Portal" />
         <Routes>
           <Route path="/login" element={<Navigate to="/dashboard" />} />
           <Route path="/dashboard" element={<Dashboard user={user} />} />

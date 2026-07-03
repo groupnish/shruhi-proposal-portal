@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import logo from "../assets/logo.png";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: "\uD83D\uDCCA" },
@@ -20,22 +21,9 @@ export default function Sidebar({ user }) {
     }}>
       <div style={{ padding: "22px 20px 18px", borderBottom: "1px solid var(--line-soft)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <svg width="28" height="28" viewBox="0 0 40 40" aria-hidden="true">
-            <defs>
-              <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stopColor="#2dd4bf" /><stop offset="1" stopColor="#0f766e" />
-              </linearGradient>
-            </defs>
-            <circle cx="20" cy="20" r="19" fill="url(#lg)" />
-            <path d="M13 11h11a4 4 0 0 1 0 8H17l11 10H17a4 4 0 0 1 0-8h7L13 11z" fill="#fff" />
-          </svg>
-          <div>
-            <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 14, lineHeight: 1.15 }}>
-              Shruhi Instrumentation
-            </div>
-            <div style={{ fontSize: 10, letterSpacing: 0.3, color: "var(--text-faint)" }}>
-              Proposal Portal
-            </div>
+          <img src={logo} alt="Shruhi Instrumentation" style={{ height: 30, width: "auto" }} />
+          <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 14, lineHeight: 1.15 }}>
+            Shruhi Instrumentation
           </div>
         </div>
       </div>
