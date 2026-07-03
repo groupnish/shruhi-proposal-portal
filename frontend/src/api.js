@@ -41,4 +41,36 @@ export const api = {
       headers: { "Content-Type": "application/json", ...authHeaders() },
       body: JSON.stringify({ stage, note }),
     }).then(handle),
+
+  searchFamilies: (q) =>
+    fetch(`${BASE}/catalog/families?q=${encodeURIComponent(q || "")}`, { headers: authHeaders() }).then(handle),
+
+  decodeModel: (code) =>
+    fetch(`${BASE}/catalog/decode`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ code }),
+    }).then(handle),
+
+  listCosting: (caseId) =>
+    fetch(`${BASE}/cases/${caseId}/costing`, { headers: authHeaders() }).then(handle),
+
+  addCosting: (caseId, payload) =>
+    fetch(`${BASE}/cases/${caseId}/costing`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  updateCosting: (id, payload) =>
+    fetch(`${BASE}/costing/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  deleteCosting: (id) =>
+    fetch(`${BASE}/costing/${id}`, { method: "DELETE", headers: authHeaders() }).then((r) => {
+      if (!r.ok) throw new Error("Failed to delete");
+    }),
 };

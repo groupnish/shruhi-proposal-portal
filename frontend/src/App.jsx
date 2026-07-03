@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Login from "./pages/Login.jsx";
 import Cases from "./pages/Cases.jsx";
+import CaseDetail from "./pages/CaseDetail.jsx";
 import TopBar from "./components/TopBar.jsx";
 
 function storedUser() {
@@ -26,6 +27,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login onLogin={setUser} />} />
         <Route path="/cases" element={authed ? <Cases user={user} /> : <Navigate to="/login" />} />
+        <Route path="/cases/:id" element={authed ? <CaseDetail /> : <Navigate to="/login" />} />
         <Route path="*" element={<Navigate to={authed ? "/cases" : "/login"} />} />
       </Routes>
     </>

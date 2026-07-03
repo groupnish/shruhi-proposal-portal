@@ -6,6 +6,8 @@ import { runMigrations } from "./migrate.js";
 import { seedAdmin } from "./seedAdmin.js";
 import authRoutes from "./routes/auth.js";
 import caseRoutes from "./routes/cases.js";
+import catalogRoutes from "./routes/catalog.js";
+import { caseItemsRouter, itemRouter } from "./routes/costingItems.js";
 
 dotenv.config();
 
@@ -49,6 +51,9 @@ async function main() {
 
   app.get("/api/health", (req, res) => res.json({ ok: true }));
   app.use("/api/auth", authRoutes);
+  app.use("/api/cases/:caseId/costing", caseItemsRouter);
+  app.use("/api/costing", itemRouter);
+  app.use("/api/catalog", catalogRoutes);
   app.use("/api/cases", caseRoutes);
 
   const port = process.env.PORT || 4000;

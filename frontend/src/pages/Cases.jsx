@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 
 const STAGES = [
@@ -14,6 +15,7 @@ const STAGES = [
 const stageMeta = (key) => STAGES.find((s) => s.key === key) || STAGES[0];
 
 export default function Cases({ user }) {
+  const navigate = useNavigate();
   const [cases, setCases] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ customerName: "", customerCode: "", requirement: "" });
@@ -105,7 +107,13 @@ export default function Cases({ user }) {
               {cases.map((c) => {
                 const meta = stageMeta(c.stage);
                 return (
-                  <tr key={c.id} style={{ borderBottom: "1px solid var(--line-soft)" }}>
+                  <tr
+                    key={c.id}
+                    onClick={() => navigate(`/cases/${c.id}`)}
+                    style={{ borderBottom: "1px solid var(--line-soft)", cursor: "pointer" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--panel-2)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
                     <td style={{ padding: "12px 16px" }}>
                       <span className="ref-stamp">CASE-{String(c.id).padStart(4, "0")}</span>
                     </td>
@@ -122,7 +130,7 @@ export default function Cases({ user }) {
                     <td style={{ padding: "12px 16px", color: "var(--text-dim)", fontSize: 13 }}>
                       {new Date(c.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                     </td>
-                    <td style={{ padding: "12px 16px" }}>
+                    <td style={{ padding: "12px 16px" }} onClick={(e) => e.stopPropagation()}>
                       <select defaultValue="" onChange={(e) => e.target.value && moveStage(c.id, e.target.value)} style={{ minWidth: 170 }}>
                         <option value="" disabled>Choose stage…</option>
                         {STAGES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
