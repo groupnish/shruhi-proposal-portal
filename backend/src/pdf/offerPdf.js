@@ -37,6 +37,32 @@ const TERMS_NOTE =
 
 const money = (n) => Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+// Splits an address into 2-3 readable lines. Respects manual line breaks if
+// present; otherwise (the common case — addresses are usually typed as one
+// comma-separated string) greedily packs comma-separated segments into
+// lines up to ~45 characters, which reliably produces 2-3 lines for a
+// typical Indian address rather than one long unbroken line.
+function formatAddressLines(address, maxLineLength = 45) {
+  if (!address) return [];
+  if (address.includes("\n")) {
+    return address.split("\n").map((l) => l.trim()).filter(Boolean);
+  }
+  const parts = address.split(",").map((p) => p.trim()).filter(Boolean);
+  const lines = [];
+  let current = "";
+  for (const part of parts) {
+    const candidate = current ? `${current}, ${part}` : part;
+    if (candidate.length > maxLineLength && current) {
+      lines.push(current);
+      current = part;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
 function letterhead(doc) {
   try {
     doc.image(LOGO_PATH, 50, 45, { width: 50 });
@@ -77,7 +103,7 @@ export function writeOfferPdf(doc, { ref, revision, date, customer, requirementT
   doc.font("Helvetica");
   if (customer.contact_person) doc.font("Helvetica-Bold").text(`Kind Attn: ${customer.contact_person}`).font("Helvetica");
   if (customer.address) {
-    customer.address.split("\n").map((l) => l.trim()).filter(Boolean).forEach((line) => doc.text(line));
+    formatAddressLines(customer.address).forEach((line) => doc.text(line));
   }
   if (customer.gst_number) doc.text(`GSTIN: ${customer.gst_number}`);
   doc.moveDown(0.8);
