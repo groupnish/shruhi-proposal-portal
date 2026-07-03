@@ -726,7 +726,7 @@ export default function CaseDetail({ user }) {
                   </span>
                 </div>
                 <div>
-                  <button className="btn-ghost" onClick={() => api.downloadOfferPdf(o.id)} style={{ padding: "6px 12px", fontSize: 12 }}>
+                  <button className="btn-ghost" onClick={() => api.downloadOfferPdf(o.id, o.ref)} style={{ padding: "6px 12px", fontSize: 12 }}>
                     Download PDF
                   </button>
                   {user?.role === "admin" && (

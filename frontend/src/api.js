@@ -109,12 +109,24 @@ export const api = {
 
   // Opens the PDF in a new tab. Uses fetch (not a plain <a href>) because
   // the endpoint needs the auth header, which a plain link can't send.
-  downloadOfferPdf: async (offerId) => {
+  // Triggers a real browser download (not just opening a tab) with the
+  // filename set directly on a temporary <a download> element — the
+  // Content-Disposition header the backend sends is NOT honored by browsers
+  // for a client-side Blob URL like this, only for native navigations, so
+  // the filename has to be set here instead.
+  downloadOfferPdf: async (offerId, ref) => {
     const res = await fetch(`${BASE}/offers/${offerId}/pdf`, { headers: authHeaders() });
     if (!res.ok) throw new Error("Failed to generate PDF");
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
+    const filename = `${(ref || `offer-${offerId}`).replace(/\//g, "-")}.pdf`;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   },
 
   deleteOffer: (offerId) =>
