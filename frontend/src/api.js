@@ -87,6 +87,13 @@ export const api = {
       body: JSON.stringify(payload),
     }).then(handle),
 
+  updateCustomer: (id, payload) =>
+    fetch(`${BASE}/customers/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
   generateOffer: (caseId) =>
     fetch(`${BASE}/cases/${caseId}/offer`, { method: "POST", headers: authHeaders() }).then(handle),
 

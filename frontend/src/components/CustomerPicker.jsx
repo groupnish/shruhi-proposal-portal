@@ -1,16 +1,12 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import CustomerForm from "./CustomerForm.jsx";
 
 export default function CustomerPicker({ value, onChange }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
   const [showNewForm, setShowNewForm] = useState(false);
-  const [form, setForm] = useState({
-    name: "", code: "", contact_person: "", email: "", phone: "", address: "", gst_number: "",
-  });
-  const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!q.trim()) { setResults([]); setOpen(false); return; }
@@ -24,20 +20,10 @@ export default function CustomerPicker({ value, onChange }) {
     return () => clearTimeout(t);
   }, [q]);
 
-  async function saveNew(e) {
-    e.preventDefault();
-    setError("");
-    setSaving(true);
-    try {
-      const created = await api.createCustomer(form);
-      onChange(created);
-      setShowNewForm(false);
-      setForm({ name: "", code: "", contact_person: "", email: "", phone: "", address: "", gst_number: "" });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
-    }
+  async function handleCreate(form) {
+    const created = await api.createCustomer(form);
+    onChange(created);
+    setShowNewForm(false);
   }
 
   if (value) {
@@ -58,46 +44,12 @@ export default function CustomerPicker({ value, onChange }) {
 
   if (showNewForm) {
     return (
-      <form onSubmit={saveNew} className="card" style={{ padding: 16 }}>
-        <div style={{ fontSize: 12.5, color: "var(--text-faint)", marginBottom: 12 }}>
-          Adding to the customer master list — this record will be available to pick for any future case.
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-          <div>
-            <label className="fl">Customer name *</label>
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required autoFocus />
-          </div>
-          <div>
-            <label className="fl">Customer code</label>
-            <input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} placeholder="e.g. SAHAJANAND" />
-          </div>
-          <div>
-            <label className="fl">Contact person</label>
-            <input value={form.contact_person} onChange={(e) => setForm({ ...form, contact_person: e.target.value })} />
-          </div>
-          <div>
-            <label className="fl">Phone</label>
-            <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-          </div>
-          <div>
-            <label className="fl">Email</label>
-            <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          </div>
-          <div>
-            <label className="fl">GST number</label>
-            <input value={form.gst_number} onChange={(e) => setForm({ ...form, gst_number: e.target.value })} />
-          </div>
-        </div>
-        <div style={{ marginBottom: 14 }}>
-          <label className="fl">Address</label>
-          <textarea rows={2} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-        </div>
-        {error && <div style={{ color: "var(--red)", fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
-        <div style={{ display: "flex", gap: 8 }}>
-          <button type="submit" className="btn-primary" disabled={saving}>{saving ? "Saving…" : "Save customer"}</button>
-          <button type="button" className="btn-ghost" onClick={() => setShowNewForm(false)}>Cancel</button>
-        </div>
-      </form>
+      <CustomerForm
+        note="Adding to the customer master list — this record will be available to pick for any future case."
+        submitLabel="Save customer"
+        onSubmit={handleCreate}
+        onCancel={() => setShowNewForm(false)}
+      />
     );
   }
 

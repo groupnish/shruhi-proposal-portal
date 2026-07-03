@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Login from "./pages/Login.jsx";
 import Cases from "./pages/Cases.jsx";
 import CaseDetail from "./pages/CaseDetail.jsx";
+import Customers from "./pages/Customers.jsx";
 import TopBar from "./components/TopBar.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="/login" element={<Navigate to="/cases" />} />
           <Route path="/cases" element={<Cases user={user} />} />
           <Route path="/cases/:id" element={<CaseDetail />} />
+          <Route path="/customers" element={<Customers />} />
           <Route path="*" element={<Navigate to="/cases" />} />
         </Routes>
       </div>
