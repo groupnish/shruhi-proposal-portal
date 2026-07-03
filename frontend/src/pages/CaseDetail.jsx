@@ -548,7 +548,7 @@ export default function CaseDetail({ user }) {
 
   return (
     <div style={{ maxWidth: 980, margin: "0 auto", padding: "36px 24px 60px", width: "100%" }}>
-      <Link to="/cases" style={{ fontSize: 12.5, color: "var(--text-faint)", textDecoration: "none" }}>&larr; Back to cases</Link>
+      <Link to="/cases" style={{ fontSize: 12.5, color: "var(--text-faint)", textDecoration: "none" }}>&larr; Back to proposals</Link>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "10px 0 6px" }}>
         <span className="ref-stamp">{caseData.reference || `CASE-${String(caseData.id).padStart(4, "0")}`}</span>

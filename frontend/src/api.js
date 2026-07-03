@@ -129,6 +129,13 @@ export const api = {
       body: JSON.stringify({ reference }),
     }).then(handle),
 
+  updateCaseDetails: (id, payload) =>
+    fetch(`${BASE}/cases/${id}/details`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
   listUsers: () => fetch(`${BASE}/users`, { headers: authHeaders() }).then(handle),
 
   createUser: (payload) =>

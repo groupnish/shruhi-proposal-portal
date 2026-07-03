@@ -31,11 +31,14 @@ router.get("/", async (req, res) => {
   res.json(rows);
 });
 
-// POST /api/cases — create a case. Body: { customer: {id} or {name,code,contact_person,email,phone,address,gst_number}, requirement_text }
+// POST /api/cases — create a case. Body: { customer: {id} or {name,code,contact_person,email,phone,address,gst_number}, requirement_text, inquiry_type?, scheduled_offer_date? }
 router.post("/", async (req, res) => {
-  const { customer, requirement_text } = req.body;
+  const { customer, requirement_text, inquiry_type, scheduled_offer_date } = req.body;
   if (!customer || (!customer.id && !customer.name)) {
     return res.status(400).json({ error: "customer.id or customer.name is required" });
+  }
+  if (inquiry_type && !["purchase", "budgetary", "tender"].includes(inquiry_type)) {
+    return res.status(400).json({ error: "inquiry_type must be purchase, budgetary, or tender" });
   }
 
   const client = await pool.connect();
@@ -56,9 +59,9 @@ router.post("/", async (req, res) => {
     }
 
     const { rows: caseRows } = await client.query(
-      `INSERT INTO cases (customer_id, requirement_text, assigned_sales_engineer, stage)
-       VALUES ($1,$2,$3,'enquiry') RETURNING *`,
-      [customerId, requirement_text || null, req.user.id]
+      `INSERT INTO cases (customer_id, requirement_text, assigned_sales_engineer, stage, inquiry_type, scheduled_offer_date)
+       VALUES ($1,$2,$3,'enquiry',$4,$5) RETURNING *`,
+      [customerId, requirement_text || null, req.user.id, inquiry_type || null, scheduled_offer_date || null]
     );
     const created = caseRows[0];
 
@@ -181,6 +184,29 @@ router.patch("/:id/reference", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Failed to update reference" });
   }
+});
+
+// PATCH /api/cases/:id/details — inquiry type and/or scheduled proposal
+// date. The "actual" date is not set here — it's the existing
+// offer_prepared_at timestamp, captured automatically when an offer is
+// generated.
+router.patch("/:id/details", async (req, res) => {
+  const { inquiry_type, scheduled_offer_date } = req.body;
+  if (inquiry_type !== undefined && inquiry_type !== null && !["purchase", "budgetary", "tender"].includes(inquiry_type)) {
+    return res.status(400).json({ error: "inquiry_type must be purchase, budgetary, or tender" });
+  }
+
+  const sets = [];
+  const vals = [];
+  let i = 1;
+  if (inquiry_type !== undefined) { sets.push(`inquiry_type = $${i}`); vals.push(inquiry_type); i++; }
+  if (scheduled_offer_date !== undefined) { sets.push(`scheduled_offer_date = $${i}`); vals.push(scheduled_offer_date || null); i++; }
+  if (!sets.length) return res.status(400).json({ error: "No updatable fields provided" });
+  vals.push(req.params.id);
+
+  const { rows } = await query(`UPDATE cases SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`, vals);
+  if (!rows[0]) return res.status(404).json({ error: "Case not found" });
+  res.json(rows[0]);
 });
 
 export default router;
