@@ -32,14 +32,11 @@ export default function Login({ onLogin }) {
       minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
       background: "var(--bg)", padding: 20,
     }}>
-      <div className="card" style={{ width: 380, padding: "36px 32px" }}>
-        <img src={logo} alt="Shruhi Instrumentation" style={{ height: 56, marginBottom: 18 }} />
-        <h1 style={{ fontSize: 21, marginBottom: 4 }}>Shruhi Proposal Portal</h1>
-        <p style={{ color: "var(--text-faint)", fontSize: 12.5, margin: "0 0 26px", letterSpacing: 0.3, textTransform: "uppercase" }}>
-          Siemens Process Instrumentation — South Gujarat
-        </p>
+      <div className="card" style={{ width: 380, padding: "36px 32px", textAlign: "center" }}>
+        <img src={logo} alt="Shruhi Instrumentation" style={{ height: 110, width: "auto", display: "block", margin: "0 auto 16px" }} />
+        <h1 style={{ fontSize: 19, marginBottom: 26 }}>Shruhi Instrumentation</h1>
 
-        <form onSubmit={submit}>
+        <form onSubmit={submit} style={{ textAlign: "left" }}>
           <div style={{ marginBottom: 16 }}>
             <label className="fl">Email</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
