@@ -7,6 +7,8 @@ import { seedAdmin } from "./seedAdmin.js";
 import authRoutes from "./routes/auth.js";
 import caseRoutes from "./routes/cases.js";
 import catalogRoutes from "./routes/catalog.js";
+import customerRoutes from "./routes/customers.js";
+import offerRoutes from "./routes/offers.js";
 import { caseItemsRouter, itemRouter } from "./routes/costingItems.js";
 
 dotenv.config();
@@ -54,6 +56,8 @@ async function main() {
   app.use("/api/cases/:caseId/costing", caseItemsRouter);
   app.use("/api/costing", itemRouter);
   app.use("/api/catalog", catalogRoutes);
+  app.use("/api/customers", customerRoutes);
+  app.use("/api", offerRoutes); // defines its own full sub-paths (/cases/:id/offer, /offers/:id/pdf, etc.)
   app.use("/api/cases", caseRoutes);
 
   const port = process.env.PORT || 4000;

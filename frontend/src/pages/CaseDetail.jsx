@@ -146,8 +146,6 @@ function ModelBuilder({ onAdd }) {
   const [selections, setSelections] = useState({});
   const [suffixSel, setSuffixSel] = useState([]);
   const [loadError, setLoadError] = useState("");
-  const [instrumentName, setInstrumentName] = useState("");
-  const [productName, setProductName] = useState("");
   const [list, setList] = useState("0");
   const [disc, setDisc] = useState("60");
   const [margin, setMargin] = useState("30");
@@ -165,8 +163,6 @@ function ModelBuilder({ onAdd }) {
       setFamily(f);
       setSelections(defaults);
       setSuffixSel([]);
-      setInstrumentName(d.instrument_type || "");
-      setProductName(d.trade_name || "");
     } catch (err) {
       setLoadError(err.message);
     }
@@ -174,7 +170,6 @@ function ModelBuilder({ onAdd }) {
 
   function reset() {
     setFamily(null); setDetail(null); setSelections({}); setSuffixSel([]);
-    setInstrumentName(""); setProductName("");
     setList("0"); setPrice("0");
   }
 
@@ -211,15 +206,10 @@ function ModelBuilder({ onAdd }) {
 
   const description = [detail.description, ...bullets].filter(Boolean).join(" ");
 
-  const rangePosition = detail.positions.find((p) => p.is_range && selections[p.position_no]);
-  const rangeOpt = rangePosition && rangePosition.options.find((o) => o.character === selections[rangePosition.position_no]);
-  const rangeValue = rangeOpt ? (rangeOpt.short_label || rangeOpt.meaning) : "";
-
   function add() {
     if (!allChosen) return;
     onAdd({
       source: "catalog", model_code: code, family: detail.base_code, description,
-      instrument_name: instrumentName, product_name: productName, range_value: rangeValue,
       config_bullets: bullets, addons: [],
       qty: Number(qty) || 1, list_price: Number(list) || 0,
       discount_pct: Number(disc) || 0, margin_pct: Number(margin) || 0,
@@ -236,17 +226,6 @@ function ModelBuilder({ onAdd }) {
           <span style={{ fontSize: 13, color: "var(--text-dim)" }}>{family.family} — {family.short_name}</span>
         </div>
         <button className="btn-ghost" onClick={reset} style={{ padding: "5px 10px", fontSize: 11.5 }}>Change family</button>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-        <div>
-          <label className="fl">Name of instrument (offer label)</label>
-          <input value={instrumentName} onChange={(e) => setInstrumentName(e.target.value)} placeholder="e.g. Pressure Transmitter" />
-        </div>
-        <div>
-          <label className="fl">Product (short name)</label>
-          <input value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="e.g. LU240" />
-        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -298,12 +277,7 @@ function ModelBuilder({ onAdd }) {
       )}
 
       <div style={{ marginTop: 16, padding: 12, background: "var(--panel-2)", borderRadius: 8 }}>
-        <div className="mono" style={{ fontSize: 13, color: "var(--teal)", marginBottom: 6 }}>{code}</div>
-        {rangeValue && (
-          <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: bullets.length ? 8 : 0 }}>
-            Range: <span className="mono">{rangeValue}</span>
-          </div>
-        )}
+        <div className="mono" style={{ fontSize: 13, color: "var(--teal)", marginBottom: bullets.length ? 8 : 0 }}>{code}</div>
         {bullets.length > 0 && (
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: "var(--text-dim)" }}>
             {bullets.map((b, i) => <li key={i} style={{ marginBottom: 3 }}>{b}</li>)}
@@ -324,8 +298,6 @@ function PasteCodeEntry({ onAdd }) {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [instrumentName, setInstrumentName] = useState("");
-  const [productName, setProductName] = useState("");
   const [list, setList] = useState("0");
   const [disc, setDisc] = useState("60");
   const [margin, setMargin] = useState("30");
@@ -339,10 +311,6 @@ function PasteCodeEntry({ onAdd }) {
     try {
       const r = await api.decodeModel(code);
       setResult(r);
-      if (r.matched) {
-        setInstrumentName(r.family.instrument_type || "");
-        setProductName(r.family.trade_name || "");
-      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -357,7 +325,6 @@ function PasteCodeEntry({ onAdd }) {
       model_code: code.trim(),
       family: result.family.base_code,
       description: result.description,
-      instrument_name: instrumentName, product_name: productName, range_value: result.range_value || "",
       config_bullets: result.bullets,
       addons: [],
       qty: Number(qty) || 1,
@@ -387,16 +354,6 @@ function PasteCodeEntry({ onAdd }) {
       <DecodedNameplate result={result} />
       {result?.matched && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
-            <div>
-              <label className="fl">Name of instrument (offer label)</label>
-              <input value={instrumentName} onChange={(e) => setInstrumentName(e.target.value)} />
-            </div>
-            <div>
-              <label className="fl">Product (short name)</label>
-              <input value={productName} onChange={(e) => setProductName(e.target.value)} />
-            </div>
-          </div>
           <PriceFields {...{ list, setList, disc, setDisc, margin, setMargin, qty, setQty, price, setPrice }} />
           <button className="btn-primary" onClick={add} style={{ marginTop: 14 }}>Add line item</button>
         </>
@@ -406,10 +363,6 @@ function PasteCodeEntry({ onAdd }) {
 }
 
 function ManualEntry({ onAdd }) {
-  const [instrumentName, setInstrumentName] = useState("");
-  const [modelCode, setModelCode] = useState("");
-  const [productName, setProductName] = useState("");
-  const [rangeValue, setRangeValue] = useState("");
   const [description, setDescription] = useState("");
   const [list, setList] = useState("0");
   const [disc, setDisc] = useState("60");
@@ -418,14 +371,10 @@ function ManualEntry({ onAdd }) {
   const [price, setPrice] = useState("0");
 
   function add() {
-    if (!instrumentName.trim() && !description.trim()) return;
+    if (!description.trim()) return;
     onAdd({
       source: "manual",
-      model_code: modelCode.trim() || null,
-      description: description.trim() || instrumentName.trim(),
-      instrument_name: instrumentName.trim(),
-      product_name: productName.trim(),
-      range_value: rangeValue.trim(),
+      description: description.trim(),
       config_bullets: [],
       addons: [],
       qty: Number(qty) || 1,
@@ -434,35 +383,13 @@ function ManualEntry({ onAdd }) {
       margin_pct: Number(margin) || 0,
       final_unit_price: Number(price) || 0,
     });
-    setInstrumentName(""); setModelCode(""); setProductName(""); setRangeValue("");
     setDescription(""); setList("0"); setPrice("0");
   }
 
   return (
     <div>
-      <div style={{ fontSize: 12, color: "var(--text-faint)", marginBottom: 12 }}>
-        For items not yet in the catalog (e.g. Pressure Transmitters, other product lines) — fill in what you have.
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-        <div>
-          <label className="fl">Name of instrument</label>
-          <input value={instrumentName} onChange={(e) => setInstrumentName(e.target.value)} placeholder="e.g. Pressure Transmitter" />
-        </div>
-        <div>
-          <label className="fl">Model no.</label>
-          <input value={modelCode} onChange={(e) => setModelCode(e.target.value)} className="mono" placeholder="e.g. 7MF0300-1QE01-5AM2-ZE00+H01" />
-        </div>
-        <div>
-          <label className="fl">Product (short name)</label>
-          <input value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="e.g. PT-320" />
-        </div>
-        <div>
-          <label className="fl">Range</label>
-          <input value={rangeValue} onChange={(e) => setRangeValue(e.target.value)} placeholder="e.g. 16Bar" />
-        </div>
-      </div>
-      <label className="fl">Description (internal notes, optional)</label>
-      <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Any extra spec detail" />
+      <label className="fl">Description</label>
+      <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Free-text item description" />
       <PriceFields {...{ list, setList, disc, setDisc, margin, setMargin, qty, setQty, price, setPrice }} />
       <button className="btn-primary" onClick={add} style={{ marginTop: 14 }}>Add line item</button>
     </div>
@@ -577,7 +504,7 @@ export default function CaseDetail() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--line)" }}>
-                {["Instrument", "Model No.", "Product", "Range", "Qty", "Unit price", "Total", ""].map((h) => (
+                {["Description", "Qty", "Unit price", "Total", ""].map((h) => (
                   <th key={h} style={{
                     textAlign: "left", padding: "10px 14px", fontSize: 11,
                     letterSpacing: 0.5, textTransform: "uppercase", color: "var(--text-faint)", fontWeight: 600,
@@ -589,13 +516,9 @@ export default function CaseDetail() {
               {items.map((it) => (
                 <tr key={it.id} style={{ borderBottom: "1px solid var(--line-soft)" }}>
                   <td style={{ padding: "10px 14px" }}>
-                    <div style={{ fontSize: 13 }}>{it.instrument_name || it.description}</div>
+                    <div style={{ fontSize: 13 }}>{it.description}</div>
+                    {it.model_code && <div className="mono" style={{ fontSize: 11, color: "var(--text-faint)" }}>{it.model_code}</div>}
                   </td>
-                  <td style={{ padding: "10px 14px" }}>
-                    {it.model_code ? <span className="mono" style={{ fontSize: 11.5, color: "var(--text-dim)" }}>{it.model_code}</span> : "—"}
-                  </td>
-                  <td style={{ padding: "10px 14px", fontSize: 13 }}>{it.product_name || "—"}</td>
-                  <td style={{ padding: "10px 14px", fontSize: 13 }}>{it.range_value || "—"}</td>
                   <td style={{ padding: "10px 14px", fontSize: 13 }}>{it.qty}</td>
                   <td style={{ padding: "10px 14px", fontSize: 13 }}>₹{Number(it.final_unit_price).toLocaleString("en-IN")}</td>
                   <td style={{ padding: "10px 14px", fontSize: 13, fontWeight: 600 }}>
@@ -611,7 +534,7 @@ export default function CaseDetail() {
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={6} style={{ padding: "12px 14px", textAlign: "right", fontSize: 12.5, color: "var(--text-faint)" }}>
+                <td colSpan={3} style={{ padding: "12px 14px", textAlign: "right", fontSize: 12.5, color: "var(--text-faint)" }}>
                   Total
                 </td>
                 <td colSpan={2} style={{ padding: "12px 14px", fontSize: 15, fontWeight: 700, color: "var(--teal)" }}>

@@ -76,4 +76,30 @@ export const api = {
     fetch(`${BASE}/costing/${id}`, { method: "DELETE", headers: authHeaders() }).then((r) => {
       if (!r.ok) throw new Error("Failed to delete");
     }),
+
+  searchCustomers: (q) =>
+    fetch(`${BASE}/customers?q=${encodeURIComponent(q || "")}`, { headers: authHeaders() }).then(handle),
+
+  createCustomer: (payload) =>
+    fetch(`${BASE}/customers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  generateOffer: (caseId) =>
+    fetch(`${BASE}/cases/${caseId}/offer`, { method: "POST", headers: authHeaders() }).then(handle),
+
+  listOffers: (caseId) =>
+    fetch(`${BASE}/cases/${caseId}/offers`, { headers: authHeaders() }).then(handle),
+
+  // Opens the PDF in a new tab. Uses fetch (not a plain <a href>) because
+  // the endpoint needs the auth header, which a plain link can't send.
+  downloadOfferPdf: async (offerId) => {
+    const res = await fetch(`${BASE}/offers/${offerId}/pdf`, { headers: authHeaders() });
+    if (!res.ok) throw new Error("Failed to generate PDF");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+  },
 };

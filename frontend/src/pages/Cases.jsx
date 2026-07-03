@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api.js";
+import CustomerPicker from "../components/CustomerPicker.jsx";
 
 const STAGES = [
   { key: "enquiry", label: "Enquiry", color: "#5d7188" },
@@ -18,7 +19,8 @@ export default function Cases({ user }) {
   const navigate = useNavigate();
   const [cases, setCases] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ customerName: "", customerCode: "", requirement: "" });
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [requirement, setRequirement] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -31,12 +33,14 @@ export default function Cases({ user }) {
   async function submit(e) {
     e.preventDefault();
     setError("");
+    if (!selectedCustomer) { setError("Select or add a customer first"); return; }
     try {
       await api.createCase({
-        customer: { name: form.customerName, code: form.customerCode },
-        requirement_text: form.requirement,
+        customer: { id: selectedCustomer.id },
+        requirement_text: requirement,
       });
-      setForm({ customerName: "", customerCode: "", requirement: "" });
+      setSelectedCustomer(null);
+      setRequirement("");
       setShowForm(false);
       refresh();
     } catch (err) {
@@ -58,26 +62,25 @@ export default function Cases({ user }) {
           </div>
           <h1 style={{ fontSize: 24 }}>Cases</h1>
         </div>
-        <button className="btn-primary" onClick={() => setShowForm((s) => !s)}>
+        <button className="btn-primary" onClick={() => {
+          setShowForm((s) => !s);
+          setSelectedCustomer(null);
+          setRequirement("");
+          setError("");
+        }}>
           {showForm ? "Cancel" : "+ New case"}
         </button>
       </div>
 
       {showForm && (
         <form onSubmit={submit} className="card" style={{ padding: 22, marginBottom: 22 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-            <div>
-              <label className="fl">Customer name</label>
-              <input value={form.customerName} onChange={(e) => setForm({ ...form, customerName: e.target.value })} required placeholder="e.g. Sahajanand Valves Pvt. Ltd." />
-            </div>
-            <div>
-              <label className="fl">Customer code</label>
-              <input value={form.customerCode} onChange={(e) => setForm({ ...form, customerCode: e.target.value })} placeholder="e.g. SAHAJANAND" />
-            </div>
+          <div style={{ marginBottom: 16 }}>
+            <label className="fl">Customer</label>
+            <CustomerPicker value={selectedCustomer} onChange={setSelectedCustomer} />
           </div>
           <div style={{ marginBottom: 16 }}>
             <label className="fl">Requirement</label>
-            <textarea value={form.requirement} onChange={(e) => setForm({ ...form, requirement: e.target.value })} rows={3} placeholder="What has the customer asked for?" />
+            <textarea value={requirement} onChange={(e) => setRequirement(e.target.value)} rows={3} placeholder="What has the customer asked for?" />
           </div>
           {error && <div style={{ color: "var(--red)", fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
           <button type="submit" className="btn-primary">Create case</button>
