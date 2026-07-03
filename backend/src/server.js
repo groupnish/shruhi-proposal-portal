@@ -1,18 +1,55 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { pool } from "./db.js";
+import { runMigrations } from "./migrate.js";
+import { seedAdmin } from "./seedAdmin.js";
 import authRoutes from "./routes/auth.js";
 import caseRoutes from "./routes/cases.js";
 
 dotenv.config();
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+async function main() {
+  // Runs on every boot. Migrations are idempotent (tracked in
+  // schema_migrations), so this is safe to run on every deploy/restart —
+  // it's what lets this work without Shell access on Render's free tier.
+  console.log("[boot] running migrations…");
+  await runMigrations(pool);
 
-app.get("/api/health", (req, res) => res.json({ ok: true }));
-app.use("/api/auth", authRoutes);
-app.use("/api/cases", caseRoutes);
+  // Optional: auto-create/update the Admin account from env vars, so there's
+  // no need for shell access to run a seed script. Set ADMIN_EMAIL (required
+  // to trigger this), ADMIN_NAME, and optionally ADMIN_PASSWORD in the
+  // service's Environment tab in Render, then redeploy. If ADMIN_PASSWORD
+  // isn't set, a temporary one is generated and printed ONCE to these logs.
+  if (process.env.ADMIN_EMAIL) {
+    console.log("[boot] seeding admin user…");
+    const { email, generatedPassword } = await seedAdmin(pool, {
+      name: process.env.ADMIN_NAME,
+      email: process.env.ADMIN_EMAIL,
+      password: process.env.ADMIN_PASSWORD,
+    });
+    console.log(`[boot] admin ready: ${email}`);
+    if (generatedPassword) {
+      console.log(`[boot] TEMPORARY PASSWORD: ${generatedPassword}`);
+      console.log("[boot] Save this now — it will not be shown again. Change it after first login.");
+    }
+  } else {
+    console.log("[boot] ADMIN_EMAIL not set — skipping admin auto-seed.");
+  }
 
-const port = process.env.PORT || 4000;
-app.listen(port, () => console.log(`API listening on :${port}`));
+  const app = express();
+  app.use(cors());
+  app.use(express.json());
+
+  app.get("/api/health", (req, res) => res.json({ ok: true }));
+  app.use("/api/auth", authRoutes);
+  app.use("/api/cases", caseRoutes);
+
+  const port = process.env.PORT || 4000;
+  app.listen(port, () => console.log(`[boot] API listening on :${port}`));
+}
+
+main().catch((err) => {
+  console.error("[boot] fatal error during startup:", err);
+  process.exit(1);
+});
