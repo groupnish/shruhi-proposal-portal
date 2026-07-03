@@ -37,24 +37,20 @@ router.post("/cases/:caseId/offer", async (req, res) => {
       return res.status(400).json({ error: "Add at least one costing line before generating an offer" });
     }
 
-    let seq = caseRow.offer_seq;
-    let revision = 0;
-    if (!seq) {
-      const seqRow = (await client.query(
-        `UPDATE offer_sequence SET next_seq = next_seq + 1 WHERE id = 1 RETURNING next_seq - 1 AS allocated`
-      )).rows[0];
-      seq = seqRow.allocated;
-      await client.query(`UPDATE cases SET offer_seq = $1 WHERE id = $2`, [seq, caseId]);
-    } else {
-      const prev = (await client.query(
-        `SELECT COALESCE(MAX(revision), -1) AS r FROM offers WHERE case_id = $1`, [caseId]
-      )).rows[0];
-      revision = prev.r + 1;
-    }
+    // The offer's number is whatever the case's own reference is — the
+    // exact same value shown in the Cases list (custom-set, or the default
+    // CASE-0001 format if never customized). This used to be a separate
+    // auto-incrementing counter (offer_sequence); that's no longer used for
+    // ref numbering so the two can't drift apart — one number, one source.
+    const caseRef = caseRow.reference || `CASE-${String(caseRow.id).padStart(4, "0")}`;
+    const prev = (await client.query(
+      `SELECT COALESCE(MAX(revision), -1) AS r FROM offers WHERE case_id = $1`, [caseId]
+    )).rows[0];
+    const revision = prev.r + 1;
 
     const codeForRef = (caseRow.customer_code || caseRow.customer_name || "CUSTOMER")
       .toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20) || "CUSTOMER";
-    const ref = `SI/${seq}/${codeForRef}/R${revision}`;
+    const ref = `SI/${caseRef}/${codeForRef}/R${revision}`;
 
     const itemsSnapshot = items.map((it) => ({
       description: it.description, instrument_name: it.instrument_name, product_name: it.product_name,
@@ -135,8 +131,8 @@ router.get("/offers/:id/pdf", async (req, res) => {
   doc.end();
 });
 
-// DELETE /api/offers/:id — admin only. Doesn't touch the case's stage or
-// offer_seq allocation; just removes this particular generated revision.
+// DELETE /api/offers/:id — admin only. Doesn't touch the case's stage;
+// just removes this particular generated revision.
 router.delete("/offers/:id", requireRole("admin"), async (req, res) => {
   const { rows } = await query(`DELETE FROM offers WHERE id = $1 RETURNING id`, [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: "Offer not found" });

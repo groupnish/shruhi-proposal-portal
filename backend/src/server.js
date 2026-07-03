@@ -48,22 +48,6 @@ async function main() {
     console.log("[boot] ADMIN_EMAIL not set — skipping admin auto-seed.");
   }
 
-  // Optional: set the starting offer-reference number from an env var, so
-  // it can continue your existing numbering (e.g. the next number after
-  // your last real offer) instead of the arbitrary default. Set
-  // OFFER_SEQ_START in the Environment tab, redeploy, then REMOVE the
-  // variable — it re-applies on every boot while it's set, which would
-  // otherwise reset the counter backwards on a later restart.
-  if (process.env.OFFER_SEQ_START) {
-    const desired = parseInt(process.env.OFFER_SEQ_START, 10);
-    if (!Number.isNaN(desired)) {
-      await pool.query(`UPDATE offer_sequence SET next_seq = $1 WHERE id = 1`, [desired]);
-      console.log(`[boot] offer_sequence.next_seq set to ${desired} (from OFFER_SEQ_START) — remove this env var now.`);
-    } else {
-      console.log(`[boot] OFFER_SEQ_START="${process.env.OFFER_SEQ_START}" is not a valid number — ignored.`);
-    }
-  }
-
   const app = express();
   app.use(cors());
   app.use(express.json());
