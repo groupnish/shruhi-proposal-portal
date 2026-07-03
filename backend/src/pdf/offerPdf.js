@@ -127,7 +127,7 @@ export function writeOfferPdf(doc, { ref, revision, date, customer, requirementT
   // ---------------- Page 2: Quotation table ----------------
   doc.addPage();
   letterhead(doc);
-  doc.font("Helvetica-Bold").fontSize(13).text("QUOTATION", { align: "center", underline: true });
+  doc.font("Helvetica-Bold").fontSize(13).text("QUOTATION", 50, doc.y, { align: "center", underline: true, width: 500 });
   doc.moveDown(0.6);
   refDateLine(doc, ref, date);
   doc.moveDown(0.5);
@@ -153,16 +153,17 @@ export function writeOfferPdf(doc, { ref, revision, date, customer, requirementT
     const lineTotal = Number(it.final_unit_price) * Number(it.qty);
     grandTotal += lineTotal;
     doc.text(String(idx + 1), col.sr, rowY, { width: 25 });
-    doc.text(it.instrument_name || "-", col.name, rowY, { width: 118 });
+    doc.text(it.instrument_name || it.description || "-", col.name, rowY, { width: 118 });
     const afterName = doc.y;
     doc.text(it.model_code || "-", col.model, rowY, { width: 116 });
     const afterModel = doc.y;
-    doc.text(it.product_name || "-", col.desc, rowY, { width: 62 });
+    doc.text(it.product_name || it.description || "-", col.desc, rowY, { width: 62 });
+    const afterDesc = doc.y;
     doc.text(it.range_value || "-", col.range, rowY, { width: 46 });
     doc.text(String(it.qty), col.qty, rowY, { width: 26 });
     doc.text(money(it.final_unit_price), col.unit, rowY, { width: 36 });
     doc.text(money(lineTotal), col.total, rowY, { width: 45 });
-    doc.y = Math.max(afterName, afterModel, rowY + 10) + 6;
+    doc.y = Math.max(afterName, afterModel, afterDesc, rowY + 10) + 6;
     if (doc.y > 730) { doc.addPage(); letterhead(doc); doc.y = 115; }
   });
 
@@ -178,7 +179,7 @@ export function writeOfferPdf(doc, { ref, revision, date, customer, requirementT
   letterhead(doc);
   refDateLine(doc, ref, date);
   doc.moveDown(0.5);
-  doc.font("Helvetica-Bold").fontSize(13).text("Commercial Terms and Conditions", { align: "center" });
+  doc.font("Helvetica-Bold").fontSize(13).text("Commercial Terms and Conditions", 50, doc.y, { align: "center", width: 500 });
   doc.moveDown(0.8);
 
   const rows = terms && terms.length ? terms : STANDARD_TERMS;
