@@ -17,8 +17,8 @@ caseItemsRouter.get("/", async (req, res) => {
 caseItemsRouter.post("/", async (req, res) => {
   const { caseId } = req.params;
   const {
-    source, model_code, family, description, config_bullets, addons,
-    qty, list_price, discount_pct, margin_pct, final_unit_price,
+    source, model_code, family, description, instrument_name, product_name, range_value,
+    config_bullets, addons, qty, list_price, discount_pct, margin_pct, final_unit_price,
   } = req.body;
 
   if (!description) return res.status(400).json({ error: "description is required" });
@@ -28,13 +28,14 @@ caseItemsRouter.post("/", async (req, res) => {
 
   const { rows } = await query(
     `INSERT INTO costing_items
-       (case_id, source, model_code, family, description, config_bullets, addons,
-        qty, list_price, discount_pct, margin_pct, final_unit_price, sort_order)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+       (case_id, source, model_code, family, description, instrument_name, product_name, range_value,
+        config_bullets, addons, qty, list_price, discount_pct, margin_pct, final_unit_price, sort_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
        (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM costing_items WHERE case_id = $1))
      RETURNING *`,
     [
       caseId, source, model_code || null, family || null, description,
+      instrument_name || null, product_name || null, range_value || null,
       JSON.stringify(config_bullets || []), JSON.stringify(addons || []),
       qty || 1, list_price || 0, discount_pct ?? 60, margin_pct ?? 30, final_unit_price || 0,
     ]
@@ -49,6 +50,7 @@ itemRouter.use(requireAuth);
 const UPDATABLE_FIELDS = [
   "description", "qty", "list_price", "discount_pct", "margin_pct",
   "final_unit_price", "config_bullets", "addons", "model_code", "family", "sort_order",
+  "instrument_name", "product_name", "range_value",
 ];
 
 itemRouter.patch("/:id", async (req, res) => {

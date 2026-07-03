@@ -9,7 +9,7 @@ router.use(requireAuth);
 router.get("/families", async (req, res) => {
   const q = `%${(req.query.q || "").toUpperCase()}%`;
   const { rows } = await query(
-    `SELECT base_code, family, short_name, description FROM siemens_families
+    `SELECT base_code, family, short_name, description, trade_name, instrument_type FROM siemens_families
      WHERE UPPER(base_code) LIKE $1 OR UPPER(family) LIKE $1 OR UPPER(short_name) LIKE $1
      ORDER BY base_code`,
     [q]
@@ -28,7 +28,7 @@ router.get("/families/:baseCode", async (req, res) => {
   )).rows;
   for (const p of positions) {
     p.options = (await query(
-      `SELECT character, meaning FROM siemens_position_options WHERE position_id = $1 ORDER BY LENGTH(character) DESC, character`,
+      `SELECT character, meaning, short_label FROM siemens_position_options WHERE position_id = $1 ORDER BY LENGTH(character) DESC, character`,
       [p.id]
     )).rows;
   }
@@ -91,21 +91,21 @@ router.post("/decode", async (req, res) => {
 
   for (const p of positions) {
     const options = (await query(
-      `SELECT character, meaning FROM siemens_position_options WHERE position_id = $1 ORDER BY LENGTH(character) DESC`,
+      `SELECT character, meaning, short_label FROM siemens_position_options WHERE position_id = $1 ORDER BY LENGTH(character) DESC`,
       [p.id]
     )).rows;
 
     const match = options.find((opt) => remainder.startsWith(opt.character));
     if (match) {
       decodedPositions.push({
-        position_no: p.position_no, name: p.name, is_fix: p.is_fix,
-        character: match.character, meaning: match.meaning, matched: true,
+        position_no: p.position_no, name: p.name, is_fix: p.is_fix, is_range: p.is_range,
+        character: match.character, meaning: match.meaning, short_label: match.short_label, matched: true,
       });
       remainder = remainder.slice(match.character.length);
     } else {
       decodedPositions.push({
-        position_no: p.position_no, name: p.name, is_fix: p.is_fix,
-        character: remainder[0] || null, meaning: null, matched: false,
+        position_no: p.position_no, name: p.name, is_fix: p.is_fix, is_range: p.is_range,
+        character: remainder[0] || null, meaning: null, short_label: null, matched: false,
       });
       remainder = remainder.slice(1);
     }
@@ -123,18 +123,22 @@ router.post("/decode", async (req, res) => {
 
   const bullets = decodedPositions.filter((p) => !p.is_fix && p.matched).map((p) => `${p.name}: ${p.meaning}`);
   const suffixBullets = decodedSuffixes.filter((s) => s.matched).map((s) => s.meaning);
+  const rangeMatch = decodedPositions.find((p) => p.is_range && p.matched);
+  const rangeValue = rangeMatch ? (rangeMatch.short_label || rangeMatch.meaning) : null;
 
   res.json({
     matched: true,
     family: {
       base_code: family.base_code, family: family.family,
       short_name: family.short_name, description: family.description,
+      trade_name: family.trade_name, instrument_type: family.instrument_type,
     },
     positions: decodedPositions,
     suffixes: decodedSuffixes,
     leftover: remainder || null,
     description: [family.description, ...bullets, ...suffixBullets].filter(Boolean).join(" "),
     bullets: [...bullets, ...suffixBullets],
+    range_value: rangeValue,
   });
 });
 
