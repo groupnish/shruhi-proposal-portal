@@ -26,7 +26,7 @@ router.get("/", async (req, res) => {
   res.json(rows);
 });
 
-// POST /api/cases — create a case. Body: { customer: {id?|name,code,attn,email,phone}, requirement_text }
+// POST /api/cases — create a case. Body: { customer: {id} or {name,code,contact_person,email,phone,address,gst_number}, requirement_text }
 router.post("/", async (req, res) => {
   const { customer, requirement_text } = req.body;
   if (!customer || (!customer.id && !customer.name)) {
@@ -40,9 +40,12 @@ router.post("/", async (req, res) => {
     let customerId = customer.id;
     if (!customerId) {
       const { rows } = await client.query(
-        `INSERT INTO customers (name, code, attn, email, phone)
-         VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-        [customer.name, customer.code || null, customer.attn || null, customer.email || null, customer.phone || null]
+        `INSERT INTO customers (name, code, contact_person, email, phone, address, gst_number)
+         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+        [
+          customer.name, customer.code || null, customer.contact_person || null,
+          customer.email || null, customer.phone || null, customer.address || null, customer.gst_number || null,
+        ]
       );
       customerId = rows[0].id;
     }
@@ -141,6 +144,18 @@ router.patch("/:id/stage", async (req, res) => {
   } finally {
     client.release();
   }
+});
+
+// PATCH /api/cases/:id/notes — free-text note the engineer can set before
+// generating an offer (e.g. "Installation accessories not included").
+// Snapshotted onto each offer at generation time.
+router.patch("/:id/notes", async (req, res) => {
+  const { rows } = await query(
+    `UPDATE cases SET notes = $1 WHERE id = $2 RETURNING *`,
+    [req.body.notes ?? null, req.params.id]
+  );
+  if (!rows[0]) return res.status(404).json({ error: "Case not found" });
+  res.json(rows[0]);
 });
 
 export default router;

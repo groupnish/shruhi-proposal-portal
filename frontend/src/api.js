@@ -42,6 +42,13 @@ export const api = {
       body: JSON.stringify({ stage, note }),
     }).then(handle),
 
+  updateCaseNotes: (id, notes) =>
+    fetch(`${BASE}/cases/${id}/notes`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ notes }),
+    }).then(handle),
+
   searchFamilies: (q) =>
     fetch(`${BASE}/catalog/families?q=${encodeURIComponent(q || "")}`, { headers: authHeaders() }).then(handle),
 

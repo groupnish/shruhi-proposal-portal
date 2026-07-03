@@ -62,9 +62,9 @@ router.post("/cases/:caseId/offer", async (req, res) => {
     }));
 
     const offerRow = (await client.query(
-      `INSERT INTO offers (case_id, ref, revision, prepared_by, items_snapshot, terms_snapshot, generated_at)
-       VALUES ($1,$2,$3,$4,$5,$6, now()) RETURNING *`,
-      [caseId, ref, revision, req.user.id, JSON.stringify(itemsSnapshot), JSON.stringify(STANDARD_TERMS)]
+      `INSERT INTO offers (case_id, ref, revision, prepared_by, items_snapshot, terms_snapshot, notes_snapshot, generated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7, now()) RETURNING *`,
+      [caseId, ref, revision, req.user.id, JSON.stringify(itemsSnapshot), JSON.stringify(STANDARD_TERMS), caseRow.notes || null]
     )).rows[0];
 
     // Only move the stage forward — generating a later revision on a case
@@ -130,6 +130,7 @@ router.get("/offers/:id/pdf", async (req, res) => {
     items: offer.items_snapshot,
     preparedBy: preparedByRow,
     terms: offer.terms_snapshot,
+    notes: offer.notes_snapshot,
   });
   doc.end();
 });

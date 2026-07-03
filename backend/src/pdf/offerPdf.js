@@ -35,11 +35,11 @@ const TERMS_NOTE =
   "2. Furnish the list of spares and unit prices on a separate sheet. " +
   "3. Quote separate prices for optional items, specified on Specification / Data Sheets.";
 
-const money = (n) => Number(n || 0).toLocaleString("en-IN");
+const money = (n) => Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function letterhead(doc) {
   try {
-    doc.image(LOGO_PATH, 50, 45, { width: 55 });
+    doc.image(LOGO_PATH, 50, 45, { width: 50 });
   } catch { /* logo optional if asset missing */ }
   doc.font("Helvetica-Bold").fontSize(10).fillColor("#333")
     .text("Shruhi Instrumentation", 350, 45, { align: "right", width: 195 });
@@ -53,7 +53,10 @@ function letterhead(doc) {
     .fillColor("#1a5aa8")
     .text("Email - sales01@shruhi.com", { align: "right", width: 195 })
     .fillColor("#000");
-  doc.y = 115;
+  // Logo is portrait (taller than wide) — at width 50 it renders ~69pt tall,
+  // starting at y 45. The old fixed y=115 landed inside the logo's bottom
+  // edge, causing ref/date text to visually strike through it. 145 clears it.
+  doc.y = 145;
 }
 
 function refDateLine(doc, ref, date) {
@@ -63,7 +66,7 @@ function refDateLine(doc, ref, date) {
   doc.moveDown(0.5);
 }
 
-export function writeOfferPdf(doc, { ref, revision, date, customer, requirementText, items, preparedBy, terms }) {
+export function writeOfferPdf(doc, { ref, revision, date, customer, requirementText, items, preparedBy, terms, notes }) {
   // ---------------- Page 1: Cover letter ----------------
   letterhead(doc);
   refDateLine(doc, ref, date);
@@ -73,7 +76,9 @@ export function writeOfferPdf(doc, { ref, revision, date, customer, requirementT
   doc.text(customer.customer_name || customer.name || "");
   doc.font("Helvetica");
   if (customer.contact_person) doc.font("Helvetica-Bold").text(`Kind Attn: ${customer.contact_person}`).font("Helvetica");
-  if (customer.address) doc.text(customer.address);
+  if (customer.address) {
+    customer.address.split("\n").map((l) => l.trim()).filter(Boolean).forEach((line) => doc.text(line));
+  }
   if (customer.gst_number) doc.text(`GSTIN: ${customer.gst_number}`);
   doc.moveDown(0.8);
 
@@ -164,15 +169,16 @@ export function writeOfferPdf(doc, { ref, revision, date, customer, requirementT
     doc.text(money(it.final_unit_price), col.unit, rowY, { width: 36 });
     doc.text(money(lineTotal), col.total, rowY, { width: 45 });
     doc.y = Math.max(afterName, afterModel, afterDesc, rowY + 10) + 6;
-    if (doc.y > 730) { doc.addPage(); letterhead(doc); doc.y = 115; }
+    if (doc.y > 730) { doc.addPage(); letterhead(doc); }
   });
 
   doc.moveTo(50, doc.y).lineTo(550, doc.y).strokeColor("#999").stroke();
   doc.moveDown(0.4);
   doc.font("Helvetica-Bold").fontSize(10).text(`Total: Rs. ${money(grandTotal)}`, 50, doc.y, { align: "right", width: 500 });
-  doc.moveDown(0.8);
-  doc.font("Helvetica-Bold").fontSize(8.5)
-    .text("Note: 1. Installation Accessories are not included in our scope of supply in this offer.", 50, doc.y, { width: 500 });
+  if (notes && notes.trim()) {
+    doc.moveDown(0.8);
+    doc.font("Helvetica-Bold").fontSize(8.5).text(`Note: ${notes.trim()}`, 50, doc.y, { width: 500 });
+  }
 
   // ---------------- Page 3: Commercial terms (standard compliance table) ----------------
   doc.addPage();
