@@ -45,6 +45,9 @@ export const api = {
   searchFamilies: (q) =>
     fetch(`${BASE}/catalog/families?q=${encodeURIComponent(q || "")}`, { headers: authHeaders() }).then(handle),
 
+  getFamily: (baseCode) =>
+    fetch(`${BASE}/catalog/families/${encodeURIComponent(baseCode)}`, { headers: authHeaders() }).then(handle),
+
   decodeModel: (code) =>
     fetch(`${BASE}/catalog/decode`, {
       method: "POST",
