@@ -1,3 +1,6 @@
+# Frontend is no longer deployed here — it now lives on GitHub Pages
+# (see .github/workflows/deploy-pages.yml). This blueprint only manages
+# the database and API.
 databases:
   - name: shruhi-portal-db
     plan: free
@@ -17,23 +20,6 @@ services:
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
-
-  - type: web
-    name: shruhi-portal-frontend
-    runtime: static
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    envVars:
-      - key: VITE_API_BASE
-        fromService:
-          type: web
-          name: shruhi-portal-api
-          property: hostport
-          # Render's blueprint substitutes this with the live API URL at build
-          # time. If your Render plan/version doesn't support fromService here,
-          # just hardcode the API's onrender.com URL after the first deploy.
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+      # Set these manually in the Render dashboard (Environment tab) if you
+      # want the admin account auto-seeded on boot — see README.
+      # ADMIN_EMAIL, ADMIN_NAME, ADMIN_PASSWORD (optional)
