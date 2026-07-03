@@ -3,11 +3,12 @@
 //  - server.js (auto-run on boot from ADMIN_EMAIL/ADMIN_NAME/ADMIN_PASSWORD
 //    env vars, so it works without Shell access on free tier)
 //
-// IMPORTANT: this only sets a password when the user is first created, or
-// when ADMIN_PASSWORD is explicitly supplied. It never silently rotates an
-// existing password on a later boot — free-tier services restart often
-// (spin-down after inactivity, redeploys), and re-randomizing the password
-// on every restart would invalidate whatever the person last saved.
+// IMPORTANT: name and password are only ever set from these env vars at
+// TRUE FIRST CREATION of the account. Once the user exists, boot-time env
+// vars only ever touch password_hash (and only when ADMIN_PASSWORD is
+// explicitly given) — never name. Editing a user's name is done through the
+// Users tab from then on; a leftover ADMIN_NAME env var must never be able
+// to silently overwrite that on a later restart.
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
@@ -23,13 +24,10 @@ export async function seedAdmin(pool, { name, email, password }) {
   if (existing.rows.length) {
     if (password) {
       const hash = await bcrypt.hash(password, 10);
-      await pool.query(
-        "UPDATE users SET password_hash = $1, name = COALESCE($2, name) WHERE email = $3",
-        [hash, name || null, email]
-      );
+      await pool.query("UPDATE users SET password_hash = $1 WHERE email = $2", [hash, email]);
       return { email, generatedPassword: null, created: false, updated: true };
     }
-    // Already exists, no explicit password given — leave it untouched.
+    // Already exists, no explicit password given — leave it completely untouched.
     return { email, generatedPassword: null, created: false, updated: false };
   }
 
