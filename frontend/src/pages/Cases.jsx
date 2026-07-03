@@ -2,25 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import CustomerPicker from "../components/CustomerPicker.jsx";
+import { stageMeta, INQUIRY_TYPES } from "../constants.js";
 
-const STAGES = [
-  { key: "enquiry", label: "Enquiry", color: "#5d7188" },
-  { key: "costing", label: "Costing", color: "#f2a900" },
-  { key: "costing_complete", label: "Costing complete", color: "#f2a900" },
-  { key: "offer_prepared", label: "Offer prepared", color: "#1bb8b0" },
-  { key: "offer_sent", label: "Offer sent", color: "#1bb8b0" },
-  { key: "negotiation", label: "Negotiation", color: "#f2a900" },
-  { key: "won", label: "Won", color: "#3fb950" },
-  { key: "lost", label: "Lost", color: "#ff6b6b" },
-];
-const INQUIRY_TYPES = [
-  { value: "purchase", label: "Purchase" },
-  { value: "budgetary", label: "Budgetary" },
-  { value: "tender", label: "Tender" },
-];
-const stageMeta = (key) => STAGES.find((s) => s.key === key) || STAGES[0];
 const defaultRef = (c) => `CASE-${String(c.id).padStart(4, "0")}`;
 const toDateInput = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
+const shortDate = (iso) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : "—");
 
 function ReferenceCell({ c, onSaved }) {
   const [editing, setEditing] = useState(false);
@@ -49,10 +35,10 @@ function ReferenceCell({ c, onSaved }) {
           onKeyDown={(e) => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
           placeholder={defaultRef(c)}
           className="mono"
-          style={{ width: 140, padding: "4px 8px", fontSize: 12 }}
+          style={{ width: 110, padding: "3px 6px", fontSize: 11.5 }}
           autoFocus
         />
-        <button className="btn-ghost" onClick={save} disabled={saving} style={{ padding: "4px 8px", fontSize: 11 }}>
+        <button className="btn-ghost" onClick={save} disabled={saving} style={{ padding: "3px 7px", fontSize: 10.5 }}>
           {saving ? "…" : "Save"}
         </button>
       </div>
@@ -114,11 +100,6 @@ export default function Cases({ user }) {
     }
   }
 
-  async function moveStage(id, stage) {
-    await api.updateStage(id, stage);
-    refresh();
-  }
-
   async function updateInquiryType(id, inquiry_type) {
     const updated = await api.updateCaseDetails(id, { inquiry_type });
     patchCase(updated);
@@ -129,8 +110,14 @@ export default function Cases({ user }) {
     patchCase(updated);
   }
 
+  const th = {
+    textAlign: "left", padding: "9px 10px", fontSize: 10.5, whiteSpace: "nowrap",
+    letterSpacing: 0.3, textTransform: "uppercase", color: "var(--text-faint)", fontWeight: 600,
+  };
+  const td = { padding: "9px 10px", fontSize: 12.5 };
+
   return (
-    <div style={{ maxWidth: 1420, margin: "0 auto", padding: "36px 24px 60px", width: "100%" }}>
+    <div style={{ width: "100%", padding: "36px 24px 60px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 22 }}>
         <div>
           <div style={{ fontSize: 11, letterSpacing: 0.6, textTransform: "uppercase", color: "var(--text-faint)", marginBottom: 4 }}>
@@ -151,7 +138,7 @@ export default function Cases({ user }) {
       </div>
 
       {showForm && (
-        <form onSubmit={submit} className="card" style={{ padding: 22, marginBottom: 22 }}>
+        <form onSubmit={submit} className="card" style={{ padding: 22, marginBottom: 22, maxWidth: 700 }}>
           <div style={{ marginBottom: 16 }}>
             <label className="fl">Customer</label>
             <CustomerPicker value={selectedCustomer} onChange={setSelectedCustomer} />
@@ -178,7 +165,7 @@ export default function Cases({ user }) {
         </form>
       )}
 
-      <div className="card" style={{ overflow: "auto" }}>
+      <div className="card" style={{ overflow: "hidden" }}>
         {loading ? (
           <div className="empty-state">Loading…</div>
         ) : !cases.length ? (
@@ -186,15 +173,18 @@ export default function Cases({ user }) {
             No cases yet. Start with <b style={{ color: "var(--text-dim)" }}>+ New case</b> above.
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "auto" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--line)" }}>
-                {["Reference", "Customer", "Type of inquiry", "Stage", "Handled by", "Offer prepared by", "Schedule date", "Actual date", "Created", "Move to"].map((h) => (
-                  <th key={h} style={{
-                    textAlign: "left", padding: "12px 16px", fontSize: 11, whiteSpace: "nowrap",
-                    letterSpacing: 0.5, textTransform: "uppercase", color: "var(--text-faint)", fontWeight: 600,
-                  }}>{h}</th>
-                ))}
+                <th style={th}>Reference</th>
+                <th style={th}>Customer</th>
+                <th style={th}>Inquiry</th>
+                <th style={th}>Stage</th>
+                <th style={th}>Handled by</th>
+                <th style={th}>Prepared by</th>
+                <th style={th}>Schedule</th>
+                <th style={th}>Actual</th>
+                <th style={th}>Created</th>
               </tr>
             </thead>
             <tbody>
@@ -208,53 +198,41 @@ export default function Cases({ user }) {
                     onMouseEnter={(e) => (e.currentTarget.style.background = "var(--panel-2)")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
-                    <td style={{ padding: "12px 16px" }}>
+                    <td style={td}>
                       <ReferenceCell c={c} onSaved={patchCase} />
                     </td>
-                    <td style={{ padding: "12px 16px" }}>
+                    <td style={td}>
                       <div style={{ fontWeight: 500 }}>{c.customer_name}</div>
-                      {c.customer_code && <div style={{ fontSize: 11.5, color: "var(--text-faint)" }} className="mono">{c.customer_code}</div>}
+                      {c.customer_code && <div style={{ fontSize: 10.5, color: "var(--text-faint)" }} className="mono">{c.customer_code}</div>}
                     </td>
-                    <td style={{ padding: "12px 16px" }} onClick={(e) => e.stopPropagation()}>
+                    <td style={td} onClick={(e) => e.stopPropagation()}>
                       <select
                         value={c.inquiry_type || ""}
                         onChange={(e) => updateInquiryType(c.id, e.target.value || null)}
-                        style={{ minWidth: 120 }}
+                        style={{ width: "auto", padding: "4px 6px", fontSize: 11.5 }}
                       >
-                        <option value="">Not set</option>
+                        <option value="">—</option>
                         {INQUIRY_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                       </select>
                     </td>
-                    <td style={{ padding: "12px 16px" }}>
+                    <td style={td}>
                       <span className="stage-pill">
                         <span className="stage-dot" style={{ background: meta.color }} />
                         {meta.label}
                       </span>
                     </td>
-                    <td style={{ padding: "12px 16px", fontSize: 13 }}>{c.handled_by_name || "—"}</td>
-                    <td style={{ padding: "12px 16px", fontSize: 13 }}>{c.offer_prepared_by || "—"}</td>
-                    <td style={{ padding: "12px 16px" }} onClick={(e) => e.stopPropagation()}>
+                    <td style={{ ...td, whiteSpace: "nowrap" }}>{c.handled_by_name || "—"}</td>
+                    <td style={{ ...td, whiteSpace: "nowrap" }}>{c.offer_prepared_by || "—"}</td>
+                    <td style={td} onClick={(e) => e.stopPropagation()}>
                       <input
                         type="date"
                         defaultValue={toDateInput(c.scheduled_offer_date)}
                         onChange={(e) => updateScheduleDate(c.id, e.target.value || null)}
-                        style={{ width: 150, padding: "6px 8px", fontSize: 12.5 }}
+                        style={{ width: 128, padding: "4px 6px", fontSize: 11.5 }}
                       />
                     </td>
-                    <td style={{ padding: "12px 16px", fontSize: 13, color: "var(--text-dim)", whiteSpace: "nowrap" }}>
-                      {c.offer_prepared_at
-                        ? new Date(c.offer_prepared_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
-                        : "—"}
-                    </td>
-                    <td style={{ padding: "12px 16px", color: "var(--text-dim)", fontSize: 13, whiteSpace: "nowrap" }}>
-                      {new Date(c.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                    </td>
-                    <td style={{ padding: "12px 16px" }} onClick={(e) => e.stopPropagation()}>
-                      <select defaultValue="" onChange={(e) => e.target.value && moveStage(c.id, e.target.value)} style={{ minWidth: 170 }}>
-                        <option value="" disabled>Choose stage…</option>
-                        {STAGES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-                      </select>
-                    </td>
+                    <td style={{ ...td, color: "var(--text-dim)", whiteSpace: "nowrap" }}>{shortDate(c.offer_prepared_at)}</td>
+                    <td style={{ ...td, color: "var(--text-dim)", whiteSpace: "nowrap" }}>{shortDate(c.created_at)}</td>
                   </tr>
                 );
               })}

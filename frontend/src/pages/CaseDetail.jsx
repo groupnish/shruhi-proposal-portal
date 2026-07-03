@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../api.js";
+import { STAGES, stageMeta } from "../constants.js";
 
 function suggestPrice(list, disc, margin) {
   const l = Number(list) || 0;
@@ -542,6 +543,11 @@ export default function CaseDetail({ user }) {
     }
   }
 
+  async function moveStage(stage) {
+    await api.updateStage(id, stage);
+    refresh();
+  }
+
   const total = items.reduce((sum, it) => sum + Number(it.final_unit_price) * Number(it.qty), 0);
 
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "var(--text-faint)" }}>Loading…</div>;
@@ -557,6 +563,21 @@ export default function CaseDetail({ user }) {
       {caseData.requirement_text && (
         <p style={{ color: "var(--text-dim)", fontSize: 13.5, maxWidth: 700 }}>{caseData.requirement_text}</p>
       )}
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "6px 0 4px" }}>
+        <span className="stage-pill">
+          <span className="stage-dot" style={{ background: stageMeta(caseData.stage).color }} />
+          {stageMeta(caseData.stage).label}
+        </span>
+        <select
+          defaultValue=""
+          onChange={(e) => e.target.value && moveStage(e.target.value)}
+          style={{ width: "auto", minWidth: 150, padding: "5px 10px", fontSize: 12 }}
+        >
+          <option value="" disabled>Move to…</option>
+          {STAGES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+        </select>
+      </div>
 
       <h2 style={{ fontSize: 15, marginTop: 30, marginBottom: 12 }}>Costing</h2>
 
