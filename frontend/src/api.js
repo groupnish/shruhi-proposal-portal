@@ -116,4 +116,40 @@ export const api = {
     const url = URL.createObjectURL(blob);
     window.open(url, "_blank");
   },
+
+  deleteOffer: (offerId) =>
+    fetch(`${BASE}/offers/${offerId}`, { method: "DELETE", headers: authHeaders() }).then((r) => {
+      if (!r.ok) throw new Error("Failed to delete offer");
+    }),
+
+  updateCaseReference: (id, reference) =>
+    fetch(`${BASE}/cases/${id}/reference`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ reference }),
+    }).then(handle),
+
+  listUsers: () => fetch(`${BASE}/users`, { headers: authHeaders() }).then(handle),
+
+  createUser: (payload) =>
+    fetch(`${BASE}/users`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  updateUser: (id, payload) =>
+    fetch(`${BASE}/users/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  deleteUser: (id) =>
+    fetch(`${BASE}/users/${id}`, { method: "DELETE", headers: authHeaders() }).then(async (r) => {
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to remove user");
+      }
+    }),
 };

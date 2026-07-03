@@ -1,11 +1,17 @@
 import { NavLink } from "react-router-dom";
 
 const NAV_ITEMS = [
+  { to: "/dashboard", label: "Dashboard", icon: "\uD83D\uDCCA" },
   { to: "/cases", label: "Cases", icon: "\uD83D\uDCC1" },
   { to: "/customers", label: "Customers", icon: "\uD83D\uDC65" },
 ];
 
-export default function Sidebar() {
+const ADMIN_NAV_ITEMS = [
+  { to: "/users", label: "Users", icon: "\uD83D\uDD10" },
+];
+
+export default function Sidebar({ user }) {
+  const items = user?.role === "admin" ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS] : NAV_ITEMS;
   return (
     <aside style={{
       width: 220, flexShrink: 0, background: "var(--sidebar)",
@@ -38,7 +44,7 @@ export default function Sidebar() {
         <div style={{ fontSize: 10.5, letterSpacing: 0.6, textTransform: "uppercase", color: "var(--text-faint)", padding: "0 8px 8px", fontWeight: 600 }}>
           Main
         </div>
-        {NAV_ITEMS.map((item) => (
+        {items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

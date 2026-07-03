@@ -9,6 +9,7 @@ import caseRoutes from "./routes/cases.js";
 import catalogRoutes from "./routes/catalog.js";
 import customerRoutes from "./routes/customers.js";
 import offerRoutes from "./routes/offers.js";
+import userRoutes from "./routes/users.js";
 import { caseItemsRouter, itemRouter } from "./routes/costingItems.js";
 
 dotenv.config();
@@ -73,6 +74,7 @@ async function main() {
   app.use("/api/costing", itemRouter);
   app.use("/api/catalog", catalogRoutes);
   app.use("/api/customers", customerRoutes);
+  app.use("/api/users", userRoutes);
   app.use("/api", offerRoutes); // defines its own full sub-paths (/cases/:id/offer, /offers/:id/pdf, etc.)
   app.use("/api/cases", caseRoutes);
 

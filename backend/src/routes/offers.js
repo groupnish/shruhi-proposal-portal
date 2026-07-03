@@ -1,7 +1,7 @@
 import { Router } from "express";
 import PDFDocument from "pdfkit";
 import { pool, query } from "../db.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
 import { writeOfferPdf, STANDARD_TERMS } from "../pdf/offerPdf.js";
 
 const router = Router();
@@ -133,6 +133,14 @@ router.get("/offers/:id/pdf", async (req, res) => {
     notes: offer.notes_snapshot,
   });
   doc.end();
+});
+
+// DELETE /api/offers/:id — admin only. Doesn't touch the case's stage or
+// offer_seq allocation; just removes this particular generated revision.
+router.delete("/offers/:id", requireRole("admin"), async (req, res) => {
+  const { rows } = await query(`DELETE FROM offers WHERE id = $1 RETURNING id`, [req.params.id]);
+  if (!rows[0]) return res.status(404).json({ error: "Offer not found" });
+  res.status(204).end();
 });
 
 export default router;

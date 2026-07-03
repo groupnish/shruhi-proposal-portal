@@ -469,7 +469,7 @@ function ManualEntry({ onAdd }) {
   );
 }
 
-export default function CaseDetail() {
+export default function CaseDetail({ user }) {
   const { id } = useParams();
   const [caseData, setCaseData] = useState(null);
   const [items, setItems] = useState([]);
@@ -531,6 +531,17 @@ export default function CaseDetail() {
     }
   }
 
+  async function handleDeleteOffer(offerId) {
+    if (!window.confirm("Delete this offer revision? This can't be undone.")) return;
+    setOfferError("");
+    try {
+      await api.deleteOffer(offerId);
+      refresh();
+    } catch (err) {
+      setOfferError(err.message);
+    }
+  }
+
   const total = items.reduce((sum, it) => sum + Number(it.final_unit_price) * Number(it.qty), 0);
 
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "var(--text-faint)" }}>Loading…</div>;
@@ -540,7 +551,7 @@ export default function CaseDetail() {
       <Link to="/cases" style={{ fontSize: 12.5, color: "var(--text-faint)", textDecoration: "none" }}>&larr; Back to cases</Link>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "10px 0 6px" }}>
-        <span className="ref-stamp">CASE-{String(caseData.id).padStart(4, "0")}</span>
+        <span className="ref-stamp">{caseData.reference || `CASE-${String(caseData.id).padStart(4, "0")}`}</span>
         <h1 style={{ fontSize: 22 }}>{caseData.customer_name}</h1>
       </div>
       {caseData.requirement_text && (
@@ -693,9 +704,20 @@ export default function CaseDetail() {
                     {o.prepared_by_name} · {new Date(o.generated_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
                   </span>
                 </div>
-                <button className="btn-ghost" onClick={() => api.downloadOfferPdf(o.id)} style={{ padding: "6px 12px", fontSize: 12 }}>
-                  Download PDF
-                </button>
+                <div>
+                  <button className="btn-ghost" onClick={() => api.downloadOfferPdf(o.id)} style={{ padding: "6px 12px", fontSize: 12 }}>
+                    Download PDF
+                  </button>
+                  {user?.role === "admin" && (
+                    <button
+                      className="btn-ghost"
+                      onClick={() => handleDeleteOffer(o.id)}
+                      style={{ padding: "6px 12px", fontSize: 12, marginLeft: 6, color: "var(--red)" }}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

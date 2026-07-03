@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Login from "./pages/Login.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
 import Cases from "./pages/Cases.jsx";
 import CaseDetail from "./pages/CaseDetail.jsx";
 import Customers from "./pages/Customers.jsx";
+import Users from "./pages/Users.jsx";
 import TopBar from "./components/TopBar.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 
@@ -14,6 +16,7 @@ function storedUser() {
 export default function App() {
   const [user, setUser] = useState(storedUser());
   const authed = !!sessionStorage.getItem("token");
+  const isAdmin = user?.role === "admin";
   const navigate = useNavigate();
 
   function logout() {
@@ -34,15 +37,17 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
-      <Sidebar />
+      <Sidebar user={user} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <TopBar user={user} onLogout={logout} title="Case register" />
+        <TopBar user={user} onLogout={logout} title="Shruhi Proposal Portal" />
         <Routes>
-          <Route path="/login" element={<Navigate to="/cases" />} />
+          <Route path="/login" element={<Navigate to="/dashboard" />} />
+          <Route path="/dashboard" element={<Dashboard user={user} />} />
           <Route path="/cases" element={<Cases user={user} />} />
-          <Route path="/cases/:id" element={<CaseDetail />} />
+          <Route path="/cases/:id" element={<CaseDetail user={user} />} />
           <Route path="/customers" element={<Customers />} />
-          <Route path="*" element={<Navigate to="/cases" />} />
+          <Route path="/users" element={isAdmin ? <Users /> : <Navigate to="/dashboard" />} />
+          <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
       </div>
     </div>

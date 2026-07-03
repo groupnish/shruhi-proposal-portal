@@ -19,8 +19,13 @@ const STAGE_TIMESTAMP_COLUMN = {
 // GET /api/cases — list, newest first
 router.get("/", async (req, res) => {
   const { rows } = await query(
-    `SELECT c.*, cu.name AS customer_name, cu.code AS customer_code
-     FROM cases c JOIN customers cu ON cu.id = c.customer_id
+    `SELECT c.*, cu.name AS customer_name, cu.code AS customer_code,
+            handler.name AS handled_by_name,
+            (SELECT u.name FROM offers o JOIN users u ON u.id = o.prepared_by
+             WHERE o.case_id = c.id ORDER BY o.revision DESC LIMIT 1) AS offer_prepared_by
+     FROM cases c
+     JOIN customers cu ON cu.id = c.customer_id
+     LEFT JOIN users handler ON handler.id = c.assigned_sales_engineer
      ORDER BY c.created_at DESC`
   );
   res.json(rows);
@@ -156,6 +161,26 @@ router.patch("/:id/notes", async (req, res) => {
   );
   if (!rows[0]) return res.status(404).json({ error: "Case not found" });
   res.json(rows[0]);
+});
+
+// PATCH /api/cases/:id/reference — editable case reference (falls back to
+// CASE-NNNN display in the UI when this is unset).
+router.patch("/:id/reference", async (req, res) => {
+  const reference = (req.body.reference || "").trim() || null;
+  try {
+    const { rows } = await query(
+      `UPDATE cases SET reference = $1 WHERE id = $2 RETURNING *`,
+      [reference, req.params.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: "Case not found" });
+    res.json(rows[0]);
+  } catch (err) {
+    if (err.code === "23505") {
+      return res.status(409).json({ error: "That reference is already used by another case" });
+    }
+    console.error(err);
+    res.status(500).json({ error: "Failed to update reference" });
+  }
 });
 
 export default router;
