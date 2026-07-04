@@ -8,11 +8,18 @@ export default function Customers() {
   const [loading, setLoading] = useState(true);
   const [showNewForm, setShowNewForm] = useState(false);
   const [editing, setEditing] = useState(null); // customer object being edited, or null
+  const [loadError, setLoadError] = useState("");
 
   async function refresh(query) {
     setLoading(true);
-    setCustomers(await api.searchCustomers(query ?? q));
-    setLoading(false);
+    setLoadError("");
+    try {
+      setCustomers(await api.searchCustomers(query ?? q));
+    } catch (err) {
+      setLoadError(err.message || "Failed to load customers");
+    } finally {
+      setLoading(false);
+    }
   }
   useEffect(() => { refresh(""); }, []);
 
@@ -76,6 +83,13 @@ export default function Customers() {
       <div className="card" style={{ overflow: "hidden" }}>
         {loading ? (
           <div className="empty-state">Loading…</div>
+        ) : loadError ? (
+          <div className="empty-state" style={{ color: "var(--red)" }}>
+            Couldn't load customers: {loadError}
+            <div style={{ marginTop: 10 }}>
+              <button className="btn-ghost" onClick={() => refresh(q)}>Retry</button>
+            </div>
+          </div>
         ) : !customers.length ? (
           <div className="empty-state">
             {q ? "No matching customer." : <>No customers yet. Start with <b style={{ color: "var(--text-dim)" }}>+ New customer</b> above.</>}

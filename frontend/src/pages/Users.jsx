@@ -13,8 +13,14 @@ export default function Users() {
 
   async function refresh() {
     setLoading(true);
-    setUsers(await api.listUsers());
-    setLoading(false);
+    setError("");
+    try {
+      setUsers(await api.listUsers());
+    } catch (err) {
+      setError(err.message || "Failed to load users");
+    } finally {
+      setLoading(false);
+    }
   }
   useEffect(() => { refresh(); }, []);
 
@@ -73,11 +79,22 @@ export default function Users() {
         </div>
       )}
 
-      {error && <div style={{ color: "var(--red)", fontSize: 12.5, marginBottom: 14 }}>{error}</div>}
+      {error && (
+        <div style={{ color: "var(--red)", fontSize: 12.5, marginBottom: 14 }}>
+          {error}
+          {!users.length && !loading && (
+            <button className="btn-ghost" onClick={refresh} style={{ marginLeft: 10, padding: "3px 9px", fontSize: 11.5 }}>
+              Retry
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="card" style={{ overflow: "hidden" }}>
         {loading ? (
           <div className="empty-state">Loading…</div>
+        ) : error && !users.length ? (
+          <div className="empty-state">Couldn't load users — see message above.</div>
         ) : !users.length ? (
           <div className="empty-state">No users yet.</div>
         ) : (

@@ -9,6 +9,18 @@ function authHeaders() {
 }
 
 async function handle(res) {
+  if (res.status === 401) {
+    // Any expired/invalid token, anywhere in the app, forces a clean
+    // sign-out and redirect — rather than every page quietly stalling
+    // on "Loading…" and leaving the person guessing why.
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
+    if (!location.hash.startsWith("#/login")) {
+      location.hash = "#/login";
+      location.reload();
+    }
+    throw new Error("Your session has expired — please log in again.");
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data.error || "Request failed");
   return data;
