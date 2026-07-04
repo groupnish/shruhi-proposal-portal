@@ -5,6 +5,12 @@ import { stageMeta, CASE_PROGRESS_STAGES, STAGE_ORDER } from "../constants.js";
 
 const shortDate = (iso) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : null);
 const toDateInput = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
+// The site-wide `input { width: 100%; padding: 10px 11px; ... }` rule in
+// styles.css targets every <input>, checkboxes included — without this
+// override, checkboxes stretch to fill their flex row and get padding
+// meant for text fields, which is what pushed the Case Progress labels
+// off to one side. This resets a checkbox back to its natural small size.
+const checkboxStyle = { width: 16, height: 16, minWidth: 16, flexShrink: 0, padding: 0, border: "1px solid var(--line)", borderRadius: 4 };
 
 function suggestPrice(list, disc, margin) {
   const l = Number(list) || 0;
@@ -290,7 +296,7 @@ function ModelBuilder({ onAdd }) {
                   }}
                 >
                   <input
-                    type="checkbox" checked={checked} style={{ marginRight: 5 }}
+                    type="checkbox" checked={checked} style={{ ...checkboxStyle, marginRight: 5 }}
                     onChange={() => setSuffixSel((sel) => (checked ? sel.filter((c) => c !== s.code) : [...sel, s.code]))}
                   />
                   {s.code}
@@ -655,7 +661,7 @@ export default function CaseDetail({ user }) {
             const date = caseData[p.dateKey];
             return (
               <label key={p.stage} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, cursor: "pointer" }}>
-                <input type="checkbox" checked={checked} onChange={(e) => toggleProgress(p.stage, e.target.checked)} />
+                <input type="checkbox" checked={checked} onChange={(e) => toggleProgress(p.stage, e.target.checked)} style={checkboxStyle} />
                 <span style={{ flex: 1 }}>{p.label}</span>
                 {checked && date && <span style={{ fontSize: 11.5, color: "var(--text-faint)" }}>{shortDate(date)}</span>}
               </label>
@@ -665,12 +671,12 @@ export default function CaseDetail({ user }) {
           <div style={{ borderTop: "1px solid var(--line-soft)", margin: "4px 0" }} />
 
           <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, cursor: "pointer" }}>
-            <input type="checkbox" checked={caseData.stage === "won"} onChange={(e) => toggleOutcome("won", e.target.checked)} />
+            <input type="checkbox" checked={caseData.stage === "won"} onChange={(e) => toggleOutcome("won", e.target.checked)} style={checkboxStyle} />
             <span style={{ flex: 1, fontWeight: 600, color: "var(--green)" }}>Order Won</span>
             {caseData.stage === "won" && caseData.closed_at && <span style={{ fontSize: 11.5, color: "var(--text-faint)" }}>{shortDate(caseData.closed_at)}</span>}
           </label>
           <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, cursor: "pointer" }}>
-            <input type="checkbox" checked={caseData.stage === "lost"} onChange={(e) => toggleOutcome("lost", e.target.checked)} />
+            <input type="checkbox" checked={caseData.stage === "lost"} onChange={(e) => toggleOutcome("lost", e.target.checked)} style={checkboxStyle} />
             <span style={{ flex: 1, fontWeight: 600, color: "var(--red)" }}>Order Lost</span>
             {caseData.stage === "lost" && caseData.closed_at && <span style={{ fontSize: 11.5, color: "var(--text-faint)" }}>{shortDate(caseData.closed_at)}</span>}
           </label>
@@ -688,54 +694,6 @@ export default function CaseDetail({ user }) {
             Target date for when you expect this order to close — feeds the dashboard forecast. This is separate from the actual Won/Lost date above, which is stamped automatically when you check one of those boxes.
           </div>
         </div>
-      </div>
-
-      <h2 style={{ fontSize: 15, marginTop: 30, marginBottom: 12 }}>Follow-ups</h2>
-      <div className="card" style={{ padding: 20, marginBottom: 20 }}>
-        <form onSubmit={handleAddFollowup} style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 18, flexWrap: "wrap" }}>
-          <div>
-            <label className="fl">Date</label>
-            <input type="date" value={followupDate} onChange={(e) => setFollowupDate(e.target.value)} style={{ width: 150 }} />
-          </div>
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <label className="fl">Update</label>
-            <input
-              value={followupText}
-              onChange={(e) => setFollowupText(e.target.value)}
-              placeholder="e.g. Called customer, awaiting budget approval"
-            />
-          </div>
-          <button type="submit" className="btn-primary" disabled={addingFollowup} style={{ padding: "8px 16px", whiteSpace: "nowrap" }}>
-            {addingFollowup ? "Adding…" : "Add follow-up"}
-          </button>
-        </form>
-        {followupError && <div style={{ color: "var(--red)", fontSize: 12.5, marginBottom: 14 }}>{followupError}</div>}
-
-        {!followups.length ? (
-          <div style={{ fontSize: 12.5, color: "var(--text-faint)" }}>No follow-ups logged yet.</div>
-        ) : (
-          <div>
-            {followups.map((f) => (
-              <div
-                key={f.id}
-                style={{
-                  display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12,
-                  padding: "10px 0", borderTop: "1px solid var(--line-soft)",
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 11.5, color: "var(--text-faint)", marginBottom: 3 }}>
-                    {shortDate(f.followup_date)}{f.created_by_name ? ` · ${f.created_by_name}` : ""}
-                  </div>
-                  <div style={{ fontSize: 13 }}>{f.update_text}</div>
-                </div>
-                <button className="btn-ghost" onClick={() => handleDeleteFollowup(f.id)} style={{ padding: "4px 9px", fontSize: 11, whiteSpace: "nowrap" }}>
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <h2 style={{ fontSize: 15, marginTop: 30, marginBottom: 12 }}>Costing</h2>
@@ -898,6 +856,54 @@ export default function CaseDetail({ user }) {
                     </button>
                   )}
                 </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <h2 style={{ fontSize: 15, marginTop: 30, marginBottom: 12 }}>Follow-ups</h2>
+      <div className="card" style={{ padding: 20, marginBottom: 20 }}>
+        <form onSubmit={handleAddFollowup} style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 18, flexWrap: "wrap" }}>
+          <div>
+            <label className="fl">Date</label>
+            <input type="date" value={followupDate} onChange={(e) => setFollowupDate(e.target.value)} style={{ width: 150 }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <label className="fl">Update</label>
+            <input
+              value={followupText}
+              onChange={(e) => setFollowupText(e.target.value)}
+              placeholder="e.g. Called customer, awaiting budget approval"
+            />
+          </div>
+          <button type="submit" className="btn-primary" disabled={addingFollowup} style={{ padding: "8px 16px", whiteSpace: "nowrap" }}>
+            {addingFollowup ? "Adding…" : "Add follow-up"}
+          </button>
+        </form>
+        {followupError && <div style={{ color: "var(--red)", fontSize: 12.5, marginBottom: 14 }}>{followupError}</div>}
+
+        {!followups.length ? (
+          <div style={{ fontSize: 12.5, color: "var(--text-faint)" }}>No follow-ups logged yet.</div>
+        ) : (
+          <div>
+            {followups.map((f) => (
+              <div
+                key={f.id}
+                style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12,
+                  padding: "10px 0", borderTop: "1px solid var(--line-soft)",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-faint)", marginBottom: 3 }}>
+                    {shortDate(f.followup_date)}{f.created_by_name ? ` · ${f.created_by_name}` : ""}
+                  </div>
+                  <div style={{ fontSize: 13 }}>{f.update_text}</div>
+                </div>
+                <button className="btn-ghost" onClick={() => handleDeleteFollowup(f.id)} style={{ padding: "4px 9px", fontSize: 11, whiteSpace: "nowrap" }}>
+                  Remove
+                </button>
               </div>
             ))}
           </div>
