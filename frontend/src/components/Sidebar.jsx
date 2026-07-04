@@ -4,6 +4,7 @@ import { SEGMENTS } from "../constants.js";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: "\uD83D\uDCCA" },
+  { to: "/inquiries", label: "Inbox", icon: "\uD83D\uDCE5" },
   {
     to: "/cases",
     label: "Proposals",

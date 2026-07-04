@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Cases from "./pages/Cases.jsx";
+import Inquiries from "./pages/Inquiries.jsx";
 import CaseDetail from "./pages/CaseDetail.jsx";
 import Customers from "./pages/Customers.jsx";
 import Users from "./pages/Users.jsx";
@@ -43,6 +44,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Navigate to="/dashboard" />} />
           <Route path="/dashboard" element={<Dashboard user={user} />} />
+          <Route path="/inquiries" element={<Inquiries />} />
           <Route path="/cases" element={<Cases user={user} />} />
           <Route path="/cases/:id" element={<CaseDetail user={user} />} />
           <Route path="/customers" element={<Customers />} />

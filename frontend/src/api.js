@@ -175,6 +175,19 @@ export const api = {
       if (!r.ok) throw new Error("Failed to delete follow-up");
     }),
 
+  listInquiries: (status = "pending") =>
+    fetch(`${BASE}/inquiries?status=${encodeURIComponent(status)}`, { headers: authHeaders() }).then(handle),
+
+  convertInquiry: (id, payload) =>
+    fetch(`${BASE}/inquiries/${id}/convert`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  dismissInquiry: (id) =>
+    fetch(`${BASE}/inquiries/${id}/dismiss`, { method: "POST", headers: authHeaders() }).then(handle),
+
   listUsers: () => fetch(`${BASE}/users`, { headers: authHeaders() }).then(handle),
 
   createUser: (payload) =>

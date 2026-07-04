@@ -11,6 +11,8 @@ import customerRoutes from "./routes/customers.js";
 import offerRoutes from "./routes/offers.js";
 import userRoutes from "./routes/users.js";
 import { caseItemsRouter, itemRouter } from "./routes/costingItems.js";
+import inquiryRoutes from "./routes/inquiries.js";
+import inboxPollRoutes from "./routes/inboxPoll.js";
 
 dotenv.config();
 
@@ -61,6 +63,8 @@ async function main() {
   app.use("/api/users", userRoutes);
   app.use("/api", offerRoutes); // defines its own full sub-paths (/cases/:id/offer, /offers/:id/pdf, etc.)
   app.use("/api/cases", caseRoutes);
+  app.use("/api/inquiries", inquiryRoutes);
+  app.use("/api/internal", inboxPollRoutes);
 
   const port = process.env.PORT || 4000;
   app.listen(port, () => console.log(`[boot] API listening on :${port}`));
