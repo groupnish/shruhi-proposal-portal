@@ -1,9 +1,18 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
+import { SEGMENTS } from "../constants.js";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: "\uD83D\uDCCA" },
-  { to: "/cases", label: "Proposals", icon: "\uD83D\uDCC1" },
+  {
+    to: "/cases",
+    label: "Proposals",
+    icon: "\uD83D\uDCC1",
+    children: [
+      ...SEGMENTS.map((s) => ({ to: `/cases?segment=${s.value}`, segment: s.value, label: s.label })),
+      { to: "/cases?segment=unassigned", segment: "unassigned", label: "Unassigned" },
+    ],
+  },
   { to: "/customers", label: "Customers", icon: "\uD83D\uDC65" },
 ];
 
@@ -13,6 +22,9 @@ const ADMIN_NAV_ITEMS = [
 
 export default function Sidebar({ user }) {
   const items = user?.role === "admin" ? [...NAV_ITEMS, ...ADMIN_NAV_ITEMS] : NAV_ITEMS;
+  const location = useLocation();
+  const currentSegment = new URLSearchParams(location.search).get("segment");
+
   return (
     <aside style={{
       width: 220, flexShrink: 0, background: "var(--sidebar)",
@@ -33,20 +45,48 @@ export default function Sidebar({ user }) {
           Main
         </div>
         {items.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            style={({ isActive }) => ({
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "9px 10px", borderRadius: 7, marginBottom: 2,
-              fontSize: 13.5, fontWeight: 500, textDecoration: "none",
-              color: isActive ? "var(--green)" : "var(--text-dim)",
-              background: isActive ? "var(--green-ink)" : "transparent",
-            })}
-          >
-            <span aria-hidden="true" style={{ fontSize: 14 }}>{item.icon}</span>
-            {item.label}
-          </NavLink>
+          <div key={item.to} style={{ marginBottom: 2 }}>
+            <NavLink
+              to={item.to}
+              end={!item.children}
+              style={({ isActive }) => ({
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "9px 10px", borderRadius: 7,
+                fontSize: 13.5, fontWeight: 500, textDecoration: "none",
+                color: isActive ? "var(--green)" : "var(--text-dim)",
+                background: isActive ? "var(--green-ink)" : "transparent",
+              })}
+            >
+              <span aria-hidden="true" style={{ fontSize: 14 }}>{item.icon}</span>
+              {item.label}
+            </NavLink>
+
+            {item.children && (
+              <div style={{ marginTop: 1, marginLeft: 20, borderLeft: "1px solid var(--line-soft)", paddingLeft: 10 }}>
+                {item.children.map((child) => {
+                  const active = location.pathname === "/cases" && currentSegment === child.segment;
+                  return (
+                    <NavLink
+                      key={child.to}
+                      to={child.to}
+                      style={{
+                        display: "block",
+                        padding: "6px 8px",
+                        borderRadius: 6,
+                        fontSize: 12.5,
+                        fontWeight: active ? 600 : 500,
+                        textDecoration: "none",
+                        color: active ? "var(--green)" : "var(--text-faint)",
+                        background: active ? "var(--green-ink)" : "transparent",
+                      }}
+                    >
+                      {child.label}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         ))}
       </nav>
     </aside>

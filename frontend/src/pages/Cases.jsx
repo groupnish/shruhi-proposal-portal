@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api.js";
 import CustomerPicker from "../components/CustomerPicker.jsx";
 import { stageMeta, INQUIRY_TYPES, SEGMENTS } from "../constants.js";
 
 const defaultRef = (c) => `CASE-${String(c.id).padStart(4, "0")}`;
+const VALID_TABS = [...SEGMENTS.map((s) => s.value), "unassigned"];
 const toDateInput = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
 const shortDate = (iso) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : "—");
 
@@ -68,11 +69,36 @@ export default function Cases({ user }) {
   const [segment, setSegment] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(SEGMENTS[0].value);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const segmentParam = searchParams.get("segment");
+  const [activeTab, setActiveTab] = useState(
+    VALID_TABS.includes(segmentParam) ? segmentParam : SEGMENTS[0].value
+  );
+
+  // Keeps the tab in sync when the segment changes via the URL (e.g. a
+  // Sidebar link to a specific segment) without a full page reload.
+  useEffect(() => {
+    if (VALID_TABS.includes(segmentParam) && segmentParam !== activeTab) {
+      setActiveTab(segmentParam);
+    }
+  }, [segmentParam]);
+
+  function selectTab(value) {
+    setActiveTab(value);
+    setSearchParams({ segment: value }, { replace: true });
+  }
+
+  const [loadError, setLoadError] = useState("");
 
   async function refresh() {
-    setCases(await api.listCases());
-    setLoading(false);
+    setLoadError("");
+    try {
+      setCases(await api.listCases());
+    } catch (err) {
+      setLoadError(err.message || "Failed to load cases");
+    } finally {
+      setLoading(false);
+    }
   }
   useEffect(() => { refresh(); }, []);
 
@@ -198,7 +224,7 @@ export default function Cases({ user }) {
           return (
             <button
               key={t.value}
-              onClick={() => setActiveTab(t.value)}
+              onClick={() => selectTab(t.value)}
               style={{
                 background: "none",
                 border: "none",
@@ -221,6 +247,15 @@ export default function Cases({ user }) {
       <div className="card" style={{ overflow: "hidden" }}>
         {loading ? (
           <div className="empty-state">Loading…</div>
+        ) : loadError ? (
+          <div className="empty-state" style={{ color: "var(--red)" }}>
+            Couldn't load cases: {loadError}
+            <div style={{ marginTop: 10 }}>
+              <button className="btn-ghost" onClick={() => { setLoading(true); refresh(); }}>
+                Retry
+              </button>
+            </div>
+          </div>
         ) : !cases.length ? (
           <div className="empty-state">
             No cases yet. Start with <b style={{ color: "var(--text-dim)" }}>+ New case</b> above.
