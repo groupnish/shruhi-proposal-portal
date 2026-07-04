@@ -61,10 +61,18 @@ async function main() {
   app.use("/api/catalog", catalogRoutes);
   app.use("/api/customers", customerRoutes);
   app.use("/api/users", userRoutes);
-  app.use("/api", offerRoutes); // defines its own full sub-paths (/cases/:id/offer, /offers/:id/pdf, etc.)
   app.use("/api/cases", caseRoutes);
   app.use("/api/inquiries", inquiryRoutes);
   app.use("/api/internal", inboxPollRoutes);
+  // Mounted last and deliberately broad (defines its own full sub-paths
+  // like /cases/:id/offer, /offers/:id/pdf) — this must come after every
+  // more specific /api/... mount above. offers.js applies requireAuth to
+  // everything passed into it with no path filter, so if this were
+  // registered earlier, unauthenticated requests to other routes (like
+  // the poll-inbox endpoint, which is intentionally not JWT-protected)
+  // would hit this blanket auth check first and get rejected before ever
+  // reaching their actual intended route.
+  app.use("/api", offerRoutes);
 
   const port = process.env.PORT || 4000;
   app.listen(port, () => console.log(`[boot] API listening on :${port}`));
