@@ -27,6 +27,9 @@ async function handle(res) {
 }
 
 export const api = {
+  getMyDashboard: () =>
+    fetch(`${BASE}/dashboard/me`, { headers: authHeaders() }).then(handle),
+
   login: (email, password) =>
     fetch(`${BASE}/auth/login`, {
       method: "POST",

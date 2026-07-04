@@ -13,6 +13,7 @@ import userRoutes from "./routes/users.js";
 import { caseItemsRouter, itemRouter } from "./routes/costingItems.js";
 import inquiryRoutes from "./routes/inquiries.js";
 import inboxPollRoutes from "./routes/inboxPoll.js";
+import dashboardRoutes from "./routes/dashboard.js";
 
 dotenv.config();
 
@@ -64,6 +65,7 @@ async function main() {
   app.use("/api/cases", caseRoutes);
   app.use("/api/inquiries", inquiryRoutes);
   app.use("/api/internal", inboxPollRoutes);
+  app.use("/api/dashboard", dashboardRoutes);
   // Mounted last and deliberately broad (defines its own full sub-paths
   // like /cases/:id/offer, /offers/:id/pdf) — this must come after every
   // more specific /api/... mount above. offers.js applies requireAuth to
