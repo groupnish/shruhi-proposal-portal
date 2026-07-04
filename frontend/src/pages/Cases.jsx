@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import CustomerPicker from "../components/CustomerPicker.jsx";
-import { stageMeta, INQUIRY_TYPES } from "../constants.js";
+import { stageMeta, INQUIRY_TYPES, SEGMENTS } from "../constants.js";
 
 const defaultRef = (c) => `CASE-${String(c.id).padStart(4, "0")}`;
 const toDateInput = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
@@ -65,8 +65,10 @@ export default function Cases({ user }) {
   const [requirement, setRequirement] = useState("");
   const [inquiryType, setInquiryType] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
+  const [segment, setSegment] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState(SEGMENTS[0].value);
 
   async function refresh() {
     setCases(await api.listCases());
@@ -82,17 +84,20 @@ export default function Cases({ user }) {
     e.preventDefault();
     setError("");
     if (!selectedCustomer) { setError("Select or add a customer first"); return; }
+    if (!segment) { setError("Select a segment (WW, Industries, or Instrument Service)"); return; }
     try {
       await api.createCase({
         customer: { id: selectedCustomer.id },
         requirement_text: requirement,
         inquiry_type: inquiryType || null,
         scheduled_offer_date: scheduleDate || null,
+        segment,
       });
       setSelectedCustomer(null);
       setRequirement("");
       setInquiryType("");
       setScheduleDate("");
+      setSegment("");
       setShowForm(false);
       refresh();
     } catch (err) {
@@ -102,6 +107,11 @@ export default function Cases({ user }) {
 
   async function updateInquiryType(id, inquiry_type) {
     const updated = await api.updateCaseDetails(id, { inquiry_type });
+    patchCase(updated);
+  }
+
+  async function updateSegment(id, newSegment) {
+    const updated = await api.updateCaseDetails(id, { segment: newSegment });
     patchCase(updated);
   }
 
@@ -115,6 +125,14 @@ export default function Cases({ user }) {
     letterSpacing: 0.3, textTransform: "uppercase", color: "var(--text-faint)", fontWeight: 600,
   };
   const td = { padding: "9px 10px", fontSize: 12.5 };
+
+  // Legacy cases created before the segment field existed have segment = null.
+  // Bucket those under an "Unassigned" tab so they're findable and can be
+  // tagged, rather than silently disappearing from every segment tab.
+  const TABS = [...SEGMENTS, { value: "unassigned", label: "Unassigned" }];
+  const tabCases = cases.filter((c) =>
+    activeTab === "unassigned" ? !c.segment : c.segment === activeTab
+  );
 
   return (
     <div style={{ width: "100%", padding: "36px 24px 60px" }}>
@@ -131,6 +149,7 @@ export default function Cases({ user }) {
           setRequirement("");
           setInquiryType("");
           setScheduleDate("");
+          setSegment("");
           setError("");
         }}>
           {showForm ? "Cancel" : "+ New case"}
@@ -142,6 +161,13 @@ export default function Cases({ user }) {
           <div style={{ marginBottom: 16 }}>
             <label className="fl">Customer</label>
             <CustomerPicker value={selectedCustomer} onChange={setSelectedCustomer} />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label className="fl">Segment</label>
+            <select value={segment} onChange={(e) => setSegment(e.target.value)} required>
+              <option value="">Select segment…</option>
+              {SEGMENTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
             <div>
@@ -165,6 +191,33 @@ export default function Cases({ user }) {
         </form>
       )}
 
+      <div style={{ display: "flex", gap: 6, marginBottom: 14, borderBottom: "1px solid var(--line)" }}>
+        {TABS.map((t) => {
+          const count = cases.filter((c) => (t.value === "unassigned" ? !c.segment : c.segment === t.value)).length;
+          const active = activeTab === t.value;
+          return (
+            <button
+              key={t.value}
+              onClick={() => setActiveTab(t.value)}
+              style={{
+                background: "none",
+                border: "none",
+                borderBottom: active ? "2px solid var(--teal-deep)" : "2px solid transparent",
+                color: active ? "var(--teal-deep)" : "var(--text-dim)",
+                fontWeight: active ? 600 : 500,
+                fontSize: 13,
+                padding: "8px 4px",
+                cursor: "pointer",
+                marginBottom: -1,
+              }}
+            >
+              {t.label}
+              <span style={{ marginLeft: 6, fontSize: 11, color: "var(--text-faint)" }}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="card" style={{ overflow: "hidden" }}>
         {loading ? (
           <div className="empty-state">Loading…</div>
@@ -172,12 +225,15 @@ export default function Cases({ user }) {
           <div className="empty-state">
             No cases yet. Start with <b style={{ color: "var(--text-dim)" }}>+ New case</b> above.
           </div>
+        ) : !tabCases.length ? (
+          <div className="empty-state">No cases in this segment yet.</div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "auto" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--line)" }}>
                 <th style={th}>Reference</th>
                 <th style={th}>Customer</th>
+                <th style={th}>Segment</th>
                 <th style={th}>Inquiry</th>
                 <th style={th}>Stage</th>
                 <th style={th}>Handled by</th>
@@ -188,7 +244,7 @@ export default function Cases({ user }) {
               </tr>
             </thead>
             <tbody>
-              {cases.map((c) => {
+              {tabCases.map((c) => {
                 const meta = stageMeta(c.stage);
                 return (
                   <tr
@@ -204,6 +260,16 @@ export default function Cases({ user }) {
                     <td style={td}>
                       <div style={{ fontWeight: 500 }}>{c.customer_name}</div>
                       {c.customer_code && <div style={{ fontSize: 10.5, color: "var(--text-faint)" }} className="mono">{c.customer_code}</div>}
+                    </td>
+                    <td style={td} onClick={(e) => e.stopPropagation()}>
+                      <select
+                        value={c.segment || ""}
+                        onChange={(e) => updateSegment(c.id, e.target.value || null)}
+                        style={{ width: "auto", padding: "4px 6px", fontSize: 11.5 }}
+                      >
+                        <option value="">—</option>
+                        {SEGMENTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                      </select>
                     </td>
                     <td style={td} onClick={(e) => e.stopPropagation()}>
                       <select

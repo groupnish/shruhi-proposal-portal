@@ -24,6 +24,7 @@ export default function Dashboard({ user }) {
         <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "var(--text-dim)", lineHeight: 1.7 }}>
           <li>Accuracy of proposal submission — derived from the difference between each case's Schedule Date and Actual Date of proposal.</li>
           <li>On-time performance of users working various cases — derived from the same schedule-vs-actual date data, grouped by who handled each case.</li>
+          <li>Segment-wise breakdown — both metrics above, plus overall case volume and win/loss rate, split by segment (WW / Industries / Instrument Service), so performance can be compared segment-to-segment and not just portfolio-wide.</li>
         </ul>
       </div>
     </div>

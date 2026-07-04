@@ -15,3 +15,12 @@ export const INQUIRY_TYPES = [
   { value: "budgetary", label: "Budgetary" },
   { value: "tender", label: "Tender" },
 ];
+
+// Business segment, selected per-case at case-creation time. Drives the
+// three tabs on the Proposals page and the segment-wise dashboard metrics.
+export const SEGMENTS = [
+  { value: "ww", label: "WW" },
+  { value: "industries", label: "Industries" },
+  { value: "instrument_service", label: "Instrument Service" },
+];
+export const segmentMeta = (key) => SEGMENTS.find((s) => s.value === key) || null;

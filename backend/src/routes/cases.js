@@ -31,14 +31,17 @@ router.get("/", async (req, res) => {
   res.json(rows);
 });
 
-// POST /api/cases — create a case. Body: { customer: {id} or {name,code,contact_person,email,phone,address,gst_number}, requirement_text, inquiry_type?, scheduled_offer_date? }
+// POST /api/cases — create a case. Body: { customer: {id} or {name,code,contact_person,email,phone,address,gst_number}, requirement_text, inquiry_type?, scheduled_offer_date?, segment? }
 router.post("/", async (req, res) => {
-  const { customer, requirement_text, inquiry_type, scheduled_offer_date } = req.body;
+  const { customer, requirement_text, inquiry_type, scheduled_offer_date, segment } = req.body;
   if (!customer || (!customer.id && !customer.name)) {
     return res.status(400).json({ error: "customer.id or customer.name is required" });
   }
   if (inquiry_type && !["purchase", "budgetary", "tender"].includes(inquiry_type)) {
     return res.status(400).json({ error: "inquiry_type must be purchase, budgetary, or tender" });
+  }
+  if (segment && !["ww", "industries", "instrument_service"].includes(segment)) {
+    return res.status(400).json({ error: "segment must be ww, industries, or instrument_service" });
   }
 
   const client = await pool.connect();
@@ -59,9 +62,9 @@ router.post("/", async (req, res) => {
     }
 
     const { rows: caseRows } = await client.query(
-      `INSERT INTO cases (customer_id, requirement_text, assigned_sales_engineer, stage, inquiry_type, scheduled_offer_date)
-       VALUES ($1,$2,$3,'enquiry',$4,$5) RETURNING *`,
-      [customerId, requirement_text || null, req.user.id, inquiry_type || null, scheduled_offer_date || null]
+      `INSERT INTO cases (customer_id, requirement_text, assigned_sales_engineer, stage, inquiry_type, scheduled_offer_date, segment)
+       VALUES ($1,$2,$3,'enquiry',$4,$5,$6) RETURNING *`,
+      [customerId, requirement_text || null, req.user.id, inquiry_type || null, scheduled_offer_date || null, segment || null]
     );
     const created = caseRows[0];
 
@@ -186,14 +189,17 @@ router.patch("/:id/reference", async (req, res) => {
   }
 });
 
-// PATCH /api/cases/:id/details — inquiry type and/or scheduled proposal
-// date. The "actual" date is not set here — it's the existing
+// PATCH /api/cases/:id/details — inquiry type, scheduled proposal date,
+// and/or segment. The "actual" date is not set here — it's the existing
 // offer_prepared_at timestamp, captured automatically when an offer is
 // generated.
 router.patch("/:id/details", async (req, res) => {
-  const { inquiry_type, scheduled_offer_date } = req.body;
+  const { inquiry_type, scheduled_offer_date, segment } = req.body;
   if (inquiry_type !== undefined && inquiry_type !== null && !["purchase", "budgetary", "tender"].includes(inquiry_type)) {
     return res.status(400).json({ error: "inquiry_type must be purchase, budgetary, or tender" });
+  }
+  if (segment !== undefined && segment !== null && !["ww", "industries", "instrument_service"].includes(segment)) {
+    return res.status(400).json({ error: "segment must be ww, industries, or instrument_service" });
   }
 
   const sets = [];
@@ -201,6 +207,7 @@ router.patch("/:id/details", async (req, res) => {
   let i = 1;
   if (inquiry_type !== undefined) { sets.push(`inquiry_type = $${i}`); vals.push(inquiry_type); i++; }
   if (scheduled_offer_date !== undefined) { sets.push(`scheduled_offer_date = $${i}`); vals.push(scheduled_offer_date || null); i++; }
+  if (segment !== undefined) { sets.push(`segment = $${i}`); vals.push(segment); i++; }
   if (!sets.length) return res.status(400).json({ error: "No updatable fields provided" });
   vals.push(req.params.id);
 
