@@ -12,6 +12,7 @@ const STAGE_TIMESTAMP_COLUMN = {
   costing_complete: "costing_completed_at",
   offer_prepared: "offer_prepared_at",
   offer_sent: "offer_sent_at",
+  negotiation_complete: "negotiation_completed_at",
   won: "closed_at",
   lost: "closed_at",
 };
@@ -106,7 +107,14 @@ router.get("/:id", async (req, res) => {
     [id]
   )).rows;
 
-  res.json({ ...caseRow, events, costing_items: costingItems });
+  const followups = (await query(
+    `SELECT f.*, u.name AS created_by_name FROM case_followups f
+     LEFT JOIN users u ON u.id = f.created_by WHERE f.case_id = $1
+     ORDER BY f.followup_date DESC, f.created_at DESC`,
+    [id]
+  )).rows;
+
+  res.json({ ...caseRow, events, costing_items: costingItems, followups });
 });
 
 // PATCH /api/cases/:id/stage — body: { stage, note? }
@@ -114,7 +122,7 @@ router.get("/:id", async (req, res) => {
 router.patch("/:id/stage", async (req, res) => {
   const { id } = req.params;
   const { stage, note } = req.body;
-  const validStages = ["enquiry","costing","costing_complete","offer_prepared","offer_sent","negotiation","won","lost"];
+  const validStages = ["enquiry","costing","costing_complete","offer_prepared","offer_sent","negotiation","negotiation_complete","won","lost"];
   if (!validStages.includes(stage)) {
     return res.status(400).json({ error: `stage must be one of ${validStages.join(", ")}` });
   }
@@ -190,11 +198,15 @@ router.patch("/:id/reference", async (req, res) => {
 });
 
 // PATCH /api/cases/:id/details — inquiry type, scheduled proposal date,
-// and/or segment. The "actual" date is not set here — it's the existing
-// offer_prepared_at timestamp, captured automatically when an offer is
-// generated.
+// segment, and/or expected order finalization date. The "actual" proposal
+// date is not set here — it's the existing offer_prepared_at timestamp,
+// captured automatically when an offer is generated. Likewise the actual
+// order finalization date is the existing closed_at timestamp, captured
+// automatically via PATCH .../stage when the Order Won/Lost checkbox is
+// ticked on the case detail page. expected_order_date here is a separate,
+// user-set *target* date for forecasting — not the actual outcome date.
 router.patch("/:id/details", async (req, res) => {
-  const { inquiry_type, scheduled_offer_date, segment } = req.body;
+  const { inquiry_type, scheduled_offer_date, segment, expected_order_date } = req.body;
   if (inquiry_type !== undefined && inquiry_type !== null && !["purchase", "budgetary", "tender"].includes(inquiry_type)) {
     return res.status(400).json({ error: "inquiry_type must be purchase, budgetary, or tender" });
   }
@@ -208,12 +220,54 @@ router.patch("/:id/details", async (req, res) => {
   if (inquiry_type !== undefined) { sets.push(`inquiry_type = $${i}`); vals.push(inquiry_type); i++; }
   if (scheduled_offer_date !== undefined) { sets.push(`scheduled_offer_date = $${i}`); vals.push(scheduled_offer_date || null); i++; }
   if (segment !== undefined) { sets.push(`segment = $${i}`); vals.push(segment); i++; }
+  if (expected_order_date !== undefined) { sets.push(`expected_order_date = $${i}`); vals.push(expected_order_date || null); i++; }
   if (!sets.length) return res.status(400).json({ error: "No updatable fields provided" });
   vals.push(req.params.id);
 
   const { rows } = await query(`UPDATE cases SET ${sets.join(", ")} WHERE id = $${i} RETURNING *`, vals);
   if (!rows[0]) return res.status(404).json({ error: "Case not found" });
   res.json(rows[0]);
+});
+
+// GET /api/cases/:id/followups — full follow-up history, newest first.
+// (Also included inline on GET /:id, this exists for a standalone refresh
+// after adding a new entry without re-fetching the whole case.)
+router.get("/:id/followups", async (req, res) => {
+  const { rows } = await query(
+    `SELECT f.*, u.name AS created_by_name FROM case_followups f
+     LEFT JOIN users u ON u.id = f.created_by WHERE f.case_id = $1
+     ORDER BY f.followup_date DESC, f.created_at DESC`,
+    [req.params.id]
+  );
+  res.json(rows);
+});
+
+// POST /api/cases/:id/followups — body: { followup_date, update_text }
+// Append-only: every follow-up is kept as its own row, nothing is
+// overwritten, so the full follow-up history stays in the system.
+router.post("/:id/followups", async (req, res) => {
+  const { followup_date, update_text } = req.body;
+  if (!followup_date) return res.status(400).json({ error: "followup_date is required" });
+  if (!update_text || !update_text.trim()) return res.status(400).json({ error: "update_text is required" });
+
+  const { rows } = await query(
+    `INSERT INTO case_followups (case_id, followup_date, update_text, created_by)
+     VALUES ($1,$2,$3,$4) RETURNING *`,
+    [req.params.id, followup_date, update_text.trim(), req.user.id]
+  );
+  const created = rows[0];
+  const withName = { ...created, created_by_name: req.user.name };
+  res.status(201).json(withName);
+});
+
+// DELETE /api/cases/followups/:followupId — correction only, no edit
+// endpoint since these are meant to be an append-only log.
+router.delete("/followups/:followupId", async (req, res) => {
+  const { rows } = await query(
+    `DELETE FROM case_followups WHERE id = $1 RETURNING id`, [req.params.followupId]
+  );
+  if (!rows[0]) return res.status(404).json({ error: "Follow-up not found" });
+  res.status(204).end();
 });
 
 export default router;

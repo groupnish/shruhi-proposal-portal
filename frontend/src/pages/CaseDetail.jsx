@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../api.js";
-import { STAGES, stageMeta } from "../constants.js";
+import { stageMeta, CASE_PROGRESS_STAGES, STAGE_ORDER } from "../constants.js";
+
+const shortDate = (iso) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : null);
+const toDateInput = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
 
 function suggestPrice(list, disc, margin) {
   const l = Number(list) || 0;
@@ -483,6 +486,12 @@ export default function CaseDetail({ user }) {
   const [notes, setNotes] = useState("");
   const [notesSaved, setNotesSaved] = useState(true);
   const [savingNotes, setSavingNotes] = useState(false);
+  const [followups, setFollowups] = useState([]);
+  const [followupDate, setFollowupDate] = useState("");
+  const [followupText, setFollowupText] = useState("");
+  const [followupError, setFollowupError] = useState("");
+  const [addingFollowup, setAddingFollowup] = useState(false);
+  const [expectedOrderDate, setExpectedOrderDate] = useState("");
 
   async function refresh() {
     const [c, i, o] = await Promise.all([api.getCase(id), api.listCosting(id), api.listOffers(id)]);
@@ -491,6 +500,8 @@ export default function CaseDetail({ user }) {
     setOffers(o);
     setNotes(c.notes || "");
     setNotesSaved(true);
+    setFollowups(c.followups || []);
+    setExpectedOrderDate(toDateInput(c.expected_order_date));
     setLoading(false);
   }
   useEffect(() => { refresh(); }, [id]);
@@ -548,6 +559,71 @@ export default function CaseDetail({ user }) {
     refresh();
   }
 
+  // A progress checkbox is "checked" if the case's current stage has
+  // reached at least that milestone in the fixed order — so checking
+  // "Negotiations Completed" also shows Costing/Offer Prepared/Offer
+  // Submitted as checked, which is correct (you can't skip ahead).
+  function isProgressChecked(stage) {
+    return STAGE_ORDER.indexOf(caseData.stage) >= STAGE_ORDER.indexOf(stage);
+  }
+
+  async function toggleProgress(stage, checked) {
+    if (checked) {
+      if (!isProgressChecked(stage)) await moveStage(stage);
+      return;
+    }
+    // Unchecking moves the stage back one step — to whatever came right
+    // before this milestone in the order.
+    const idx = STAGE_ORDER.indexOf(stage);
+    const prevStage = STAGE_ORDER[Math.max(idx - 1, 0)];
+    await moveStage(prevStage);
+  }
+
+  // Order Won / Order Lost are mutually exclusive outcomes, not sequential
+  // steps — checking one always overrides the other. Unchecking either
+  // reverts to "Negotiations Completed" as the last known-good milestone.
+  async function toggleOutcome(outcome, checked) {
+    if (checked) {
+      await moveStage(outcome === "won" ? "won" : "lost");
+    } else {
+      await moveStage("negotiation_complete");
+    }
+  }
+
+  async function saveExpectedOrderDate(value) {
+    setExpectedOrderDate(value);
+    const updated = await api.updateCaseDetails(id, { expected_order_date: value || null });
+    setCaseData((prev) => ({ ...prev, expected_order_date: updated.expected_order_date }));
+  }
+
+  async function handleAddFollowup(e) {
+    e.preventDefault();
+    setFollowupError("");
+    if (!followupDate) { setFollowupError("Pick a date for this follow-up"); return; }
+    if (!followupText.trim()) { setFollowupError("Add a short update"); return; }
+    setAddingFollowup(true);
+    try {
+      const created = await api.addFollowup(id, { followup_date: followupDate, update_text: followupText.trim() });
+      setFollowups((prev) => [created, ...prev]);
+      setFollowupDate("");
+      setFollowupText("");
+    } catch (err) {
+      setFollowupError(err.message);
+    } finally {
+      setAddingFollowup(false);
+    }
+  }
+
+  async function handleDeleteFollowup(followupId) {
+    if (!window.confirm("Remove this follow-up entry? This can't be undone.")) return;
+    try {
+      await api.deleteFollowup(followupId);
+      setFollowups((prev) => prev.filter((f) => f.id !== followupId));
+    } catch (err) {
+      setFollowupError(err.message);
+    }
+  }
+
   const total = items.reduce((sum, it) => sum + Number(it.final_unit_price) * Number(it.qty), 0);
 
   if (loading) return <div style={{ padding: 40, textAlign: "center", color: "var(--text-faint)" }}>Loading…</div>;
@@ -569,14 +645,97 @@ export default function CaseDetail({ user }) {
           <span className="stage-dot" style={{ background: stageMeta(caseData.stage).color }} />
           {stageMeta(caseData.stage).label}
         </span>
-        <select
-          defaultValue=""
-          onChange={(e) => e.target.value && moveStage(e.target.value)}
-          style={{ width: "auto", minWidth: 150, padding: "5px 10px", fontSize: 12 }}
-        >
-          <option value="" disabled>Move to…</option>
-          {STAGES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
-        </select>
+      </div>
+
+      <h2 style={{ fontSize: 15, marginTop: 30, marginBottom: 12 }}>Case progress</h2>
+      <div className="card" style={{ padding: 20, marginBottom: 20 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {CASE_PROGRESS_STAGES.map((p) => {
+            const checked = isProgressChecked(p.stage);
+            const date = caseData[p.dateKey];
+            return (
+              <label key={p.stage} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, cursor: "pointer" }}>
+                <input type="checkbox" checked={checked} onChange={(e) => toggleProgress(p.stage, e.target.checked)} />
+                <span style={{ flex: 1 }}>{p.label}</span>
+                {checked && date && <span style={{ fontSize: 11.5, color: "var(--text-faint)" }}>{shortDate(date)}</span>}
+              </label>
+            );
+          })}
+
+          <div style={{ borderTop: "1px solid var(--line-soft)", margin: "4px 0" }} />
+
+          <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, cursor: "pointer" }}>
+            <input type="checkbox" checked={caseData.stage === "won"} onChange={(e) => toggleOutcome("won", e.target.checked)} />
+            <span style={{ flex: 1, fontWeight: 600, color: "var(--green)" }}>Order Won</span>
+            {caseData.stage === "won" && caseData.closed_at && <span style={{ fontSize: 11.5, color: "var(--text-faint)" }}>{shortDate(caseData.closed_at)}</span>}
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5, cursor: "pointer" }}>
+            <input type="checkbox" checked={caseData.stage === "lost"} onChange={(e) => toggleOutcome("lost", e.target.checked)} />
+            <span style={{ flex: 1, fontWeight: 600, color: "var(--red)" }}>Order Lost</span>
+            {caseData.stage === "lost" && caseData.closed_at && <span style={{ fontSize: 11.5, color: "var(--text-faint)" }}>{shortDate(caseData.closed_at)}</span>}
+          </label>
+        </div>
+
+        <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--line-soft)" }}>
+          <label className="fl">Expected order finalization date</label>
+          <input
+            type="date"
+            value={expectedOrderDate}
+            onChange={(e) => saveExpectedOrderDate(e.target.value)}
+            style={{ maxWidth: 200 }}
+          />
+          <div style={{ fontSize: 11.5, color: "var(--text-faint)", marginTop: 5 }}>
+            Target date for when you expect this order to close — feeds the dashboard forecast. This is separate from the actual Won/Lost date above, which is stamped automatically when you check one of those boxes.
+          </div>
+        </div>
+      </div>
+
+      <h2 style={{ fontSize: 15, marginTop: 30, marginBottom: 12 }}>Follow-ups</h2>
+      <div className="card" style={{ padding: 20, marginBottom: 20 }}>
+        <form onSubmit={handleAddFollowup} style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 18, flexWrap: "wrap" }}>
+          <div>
+            <label className="fl">Date</label>
+            <input type="date" value={followupDate} onChange={(e) => setFollowupDate(e.target.value)} style={{ width: 150 }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <label className="fl">Update</label>
+            <input
+              value={followupText}
+              onChange={(e) => setFollowupText(e.target.value)}
+              placeholder="e.g. Called customer, awaiting budget approval"
+            />
+          </div>
+          <button type="submit" className="btn-primary" disabled={addingFollowup} style={{ padding: "8px 16px", whiteSpace: "nowrap" }}>
+            {addingFollowup ? "Adding…" : "Add follow-up"}
+          </button>
+        </form>
+        {followupError && <div style={{ color: "var(--red)", fontSize: 12.5, marginBottom: 14 }}>{followupError}</div>}
+
+        {!followups.length ? (
+          <div style={{ fontSize: 12.5, color: "var(--text-faint)" }}>No follow-ups logged yet.</div>
+        ) : (
+          <div>
+            {followups.map((f) => (
+              <div
+                key={f.id}
+                style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12,
+                  padding: "10px 0", borderTop: "1px solid var(--line-soft)",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 11.5, color: "var(--text-faint)", marginBottom: 3 }}>
+                    {shortDate(f.followup_date)}{f.created_by_name ? ` · ${f.created_by_name}` : ""}
+                  </div>
+                  <div style={{ fontSize: 13 }}>{f.update_text}</div>
+                </div>
+                <button className="btn-ghost" onClick={() => handleDeleteFollowup(f.id)} style={{ padding: "4px 9px", fontSize: 11, whiteSpace: "nowrap" }}>
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <h2 style={{ fontSize: 15, marginTop: 30, marginBottom: 12 }}>Costing</h2>

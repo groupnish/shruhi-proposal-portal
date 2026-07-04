@@ -7,7 +7,7 @@ import { writeOfferPdf, STANDARD_TERMS } from "../pdf/offerPdf.js";
 const router = Router();
 router.use(requireAuth);
 
-const STAGE_ORDER = ["enquiry", "costing", "costing_complete", "offer_prepared", "offer_sent", "negotiation", "won", "lost"];
+const STAGE_ORDER = ["enquiry", "costing", "costing_complete", "offer_prepared", "offer_sent", "negotiation", "negotiation_complete", "won", "lost"];
 
 // POST /api/cases/:caseId/offer — generate a new offer, or the next
 // revision if one already exists for this case. The running reference

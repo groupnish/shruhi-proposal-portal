@@ -25,6 +25,8 @@ export default function Dashboard({ user }) {
           <li>Accuracy of proposal submission — derived from the difference between each case's Schedule Date and Actual Date of proposal.</li>
           <li>On-time performance of users working various cases — derived from the same schedule-vs-actual date data, grouped by who handled each case.</li>
           <li>Segment-wise breakdown — both metrics above, plus overall case volume and win/loss rate, split by segment (WW / Industries / Instrument Service), so performance can be compared segment-to-segment and not just portfolio-wide.</li>
+          <li>Pipeline summary per user — a count of Enquiries, and how many of those have Costing Completed, Offer Prepared, Offer Submitted, and Negotiations Completed vs. still pending at each step, plus Orders Won and Lost — derived from the case progress checkboxes, so each salesperson (and the team overall) can see their working summary at a glance.</li>
+          <li>Order-close forecast — cases grouped by Expected Order Finalization Date, so upcoming and overdue closures are visible ahead of time.</li>
         </ul>
       </div>
     </div>

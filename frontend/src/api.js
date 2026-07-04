@@ -160,6 +160,21 @@ export const api = {
       body: JSON.stringify(payload),
     }).then(handle),
 
+  listFollowups: (caseId) =>
+    fetch(`${BASE}/cases/${caseId}/followups`, { headers: authHeaders() }).then(handle),
+
+  addFollowup: (caseId, payload) =>
+    fetch(`${BASE}/cases/${caseId}/followups`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  deleteFollowup: (followupId) =>
+    fetch(`${BASE}/cases/followups/${followupId}`, { method: "DELETE", headers: authHeaders() }).then((r) => {
+      if (!r.ok) throw new Error("Failed to delete follow-up");
+    }),
+
   listUsers: () => fetch(`${BASE}/users`, { headers: authHeaders() }).then(handle),
 
   createUser: (payload) =>
