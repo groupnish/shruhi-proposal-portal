@@ -5,10 +5,19 @@
 // Configuration (Render env vars):
 //   INBOX_IMAP_HOST      e.g. mail.shruhi.com — ask your host/cPanel for
 //                         the exact mail server hostname if unsure.
-//   INBOX_IMAP_PORT      defaults to 993 (IMAP over SSL)
+//   INBOX_IMAP_PORT      defaults to 993 (IMAP over implicit SSL/TLS)
 //   INBOX_IMAP_USER      the full mailbox address to poll
 //   INBOX_IMAP_PASSWORD  the mailbox password
 //   INBOX_IMAP_FOLDER    defaults to "INBOX"
+//   INBOX_IMAP_SECURE    "true" (default) for implicit TLS on connect
+//                         (typically port 993). Set to "false" if your
+//                         host instead uses STARTTLS on a plaintext port
+//                         (typically 143) — check cPanel's "Connect
+//                         Devices" page for your mailbox to see which
+//                         your host expects. A "Failed to receive
+//                         greeting from server" error usually means this
+//                         is set wrong for your host, or the hostname/port
+//                         itself is wrong.
 //
 // This is triggered by an external scheduler hitting POST
 // /api/internal/poll-inbox (see routes/inboxPoll.js) — Render's free tier
@@ -21,23 +30,41 @@ import { simpleParser } from "mailparser";
 import { query } from "../db.js";
 
 export async function pollInbox() {
-  const { INBOX_IMAP_HOST, INBOX_IMAP_PORT, INBOX_IMAP_USER, INBOX_IMAP_PASSWORD, INBOX_IMAP_FOLDER } = process.env;
+  const { INBOX_IMAP_HOST, INBOX_IMAP_PORT, INBOX_IMAP_USER, INBOX_IMAP_PASSWORD, INBOX_IMAP_FOLDER, INBOX_IMAP_SECURE } = process.env;
   if (!INBOX_IMAP_HOST || !INBOX_IMAP_USER || !INBOX_IMAP_PASSWORD) {
     throw new Error("Inbox polling is not configured — set INBOX_IMAP_HOST, INBOX_IMAP_USER, and INBOX_IMAP_PASSWORD");
   }
 
+  const secure = INBOX_IMAP_SECURE !== "false"; // default true (implicit TLS, typically port 993)
   const client = new ImapFlow({
     host: INBOX_IMAP_HOST,
     port: Number(INBOX_IMAP_PORT) || 993,
-    secure: true,
+    secure,
+    // STARTTLS hosts (secure:false) still require an upgrade to TLS after
+    // the plaintext greeting — imapflow does this automatically, but only
+    // if it isn't told to skip it.
+    requireTLS: !secure,
     auth: { user: INBOX_IMAP_USER, pass: INBOX_IMAP_PASSWORD },
     logger: false,
+    greetingTimeout: 15000,
+    socketTimeout: 30000,
   });
 
   let checked = 0, created = 0, skipped = 0;
   const errors = [];
 
-  await client.connect();
+  try {
+    await client.connect();
+  } catch (err) {
+    if (/greeting/i.test(err.message)) {
+      throw new Error(
+        `${err.message} — this usually means INBOX_IMAP_HOST/PORT is wrong, or INBOX_IMAP_SECURE needs to be flipped ` +
+        `(currently ${secure ? "true, i.e. implicit TLS on connect" : "false, i.e. STARTTLS"}). ` +
+        `Check cPanel's "Connect Devices" page for the exact settings your host expects.`
+      );
+    }
+    throw err;
+  }
   try {
     const lock = await client.getMailboxLock(INBOX_IMAP_FOLDER || "INBOX");
     try {
