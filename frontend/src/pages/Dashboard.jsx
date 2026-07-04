@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api.js";
-import { STAGE_ORDER, stageMeta, SEGMENTS } from "../constants.js";
+import { CASE_PROGRESS_STAGES, SEGMENTS } from "../constants.js";
 
 const inr = (n) => `₹${Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 const shortDate = (iso) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : "—");
@@ -11,9 +11,6 @@ const daysAgo = (iso) => {
   return Math.floor(diff / 86400000);
 };
 
-// Open-pipeline stages shown on the personal dashboard — won/lost are
-// shown separately as outcomes, not pipeline steps.
-const PIPELINE_STAGES = STAGE_ORDER.filter((s) => s !== "won" && s !== "lost");
 const SEGMENT_LIST = [...SEGMENTS, { value: "unassigned", label: "Unassigned" }];
 
 function StatCard({ label, value, accent }) {
@@ -104,24 +101,22 @@ export default function Dashboard({ user }) {
           {/* Pipeline — current stage distribution of open cases */}
           <SectionCard title="Your pipeline">
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {PIPELINE_STAGES.map((stage) => {
-                const meta = stageMeta(stage);
-                const count = data.pipeline[stage] || 0;
+              {CASE_PROGRESS_STAGES.map((p) => {
+                const count = data.pipeline[p.stage] || 0;
                 return (
-                  <div key={stage} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <span className="stage-dot" style={{ background: meta.color, flexShrink: 0 }} />
-                    <span style={{ flex: 1, fontSize: 13 }}>{meta.label}</span>
+                  <div key={p.stage} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ flex: 1, fontSize: 13 }}>{p.label}</span>
                     <span style={{ fontSize: 13, fontWeight: 600 }}>{count}</span>
                   </div>
                 );
               })}
               <div style={{ borderTop: "1px solid var(--line-soft)", margin: "6px 0" }} />
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--green)" }}>Won</span>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--green)" }}>Order Won</span>
                 <span style={{ fontSize: 13, fontWeight: 600 }}>{data.pipeline.won || 0}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--red)" }}>Lost</span>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--red)" }}>Order Lost</span>
                 <span style={{ fontSize: 13, fontWeight: 600 }}>{data.pipeline.lost || 0}</span>
               </div>
             </div>

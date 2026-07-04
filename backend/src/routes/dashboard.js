@@ -52,14 +52,27 @@ router.get("/me", async (req, res) => {
   const userId = req.user.id;
   const now = new Date();
 
-  // 1. Pipeline: current stage distribution of this user's open cases
-  //    (each case counted once, at whichever stage it's sitting in now —
-  //    not a cumulative "reached at least" count).
-  const pipelineRows = (await query(
-    `SELECT stage, COUNT(*)::int AS count FROM cases WHERE assigned_sales_engineer = $1 GROUP BY stage`,
+  // 1. Pipeline: cumulative milestone counts, matching the exact same
+  //    "reached at least this stage" logic as the Case Progress checklist
+  //    on the case detail page — a case sitting at Offer Submitted counts
+  //    toward Costing Completed and Offer Prepared too, not just its own
+  //    current stage. Only the 4 checklist milestones + Won/Lost are
+  //    shown; the in-progress-only stage values (enquiry, costing,
+  //    negotiation) have no checkbox anywhere else in the app, so they're
+  //    left out here for consistency.
+  const STAGE_ORDER = ["enquiry", "costing", "costing_complete", "offer_prepared", "offer_sent", "negotiation", "negotiation_complete", "won", "lost"];
+  const MILESTONES = ["costing_complete", "offer_prepared", "offer_sent", "negotiation_complete"];
+  const stageRows = (await query(
+    `SELECT stage FROM cases WHERE assigned_sales_engineer = $1`,
     [userId]
   )).rows;
-  const pipeline = Object.fromEntries(pipelineRows.map((r) => [r.stage, r.count]));
+  const pipeline = {};
+  for (const milestone of MILESTONES) {
+    const idx = STAGE_ORDER.indexOf(milestone);
+    pipeline[milestone] = stageRows.filter((r) => STAGE_ORDER.indexOf(r.stage) >= idx).length;
+  }
+  pipeline.won = stageRows.filter((r) => r.stage === "won").length;
+  pipeline.lost = stageRows.filter((r) => r.stage === "lost").length;
 
   // 2. Segment breakdown, this user's cases only.
   const segmentRows = (await query(
