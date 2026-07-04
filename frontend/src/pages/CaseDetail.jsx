@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../api.js";
-import { stageMeta, CASE_PROGRESS_STAGES, STAGE_ORDER } from "../constants.js";
+import { CASE_PROGRESS_STAGES, STAGE_ORDER } from "../constants.js";
 
 const shortDate = (iso) => (iso ? new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" }) : null);
 const toDateInput = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
@@ -646,15 +646,17 @@ export default function CaseDetail({ user }) {
         <p style={{ color: "var(--text-dim)", fontSize: 13.5, maxWidth: 700 }}>{caseData.requirement_text}</p>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "6px 0 4px" }}>
-        <span className="stage-pill">
-          <span className="stage-dot" style={{ background: stageMeta(caseData.stage).color }} />
-          {stageMeta(caseData.stage).label}
-        </span>
-      </div>
-
       <h2 style={{ fontSize: 15, marginTop: 30, marginBottom: 12 }}>Case progress</h2>
       <div className="card" style={{ padding: 20, marginBottom: 20 }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10, paddingBottom: 8, marginBottom: 8,
+          borderBottom: "1px solid var(--line-soft)",
+          fontSize: 10.5, letterSpacing: 0.4, textTransform: "uppercase", color: "var(--text-faint)", fontWeight: 600,
+        }}>
+          <span style={{ width: 16, minWidth: 16, flexShrink: 0 }} />
+          <span style={{ flex: 1 }}>Milestone</span>
+          <span>Date of Completion</span>
+        </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {CASE_PROGRESS_STAGES.map((p) => {
             const checked = isProgressChecked(p.stage);
