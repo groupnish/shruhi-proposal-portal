@@ -160,6 +160,41 @@ export const api = {
       body: JSON.stringify(payload),
     }).then(handle),
 
+  // Admin-only: edit the customer link / requirement text set at creation.
+  updateCase: (id, payload) =>
+    fetch(`${BASE}/cases/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  // Admin-only: hard delete a case and everything under it.
+  deleteCase: (id) =>
+    fetch(`${BASE}/cases/${id}`, { method: "DELETE", headers: authHeaders() }).then((r) => {
+      if (!r.ok) throw new Error("Failed to delete case");
+    }),
+
+  // Same Blob + temporary <a download> pattern as downloadOfferPdf, for
+  // the same reason: Content-Disposition isn't honored for blob: URLs.
+  // sheetName (usually the latest offer's ref) is also sent as ?sheet= so
+  // the workbook's internal tab name matches the downloaded filename.
+  downloadCostingExcel: async (caseId, sheetName) => {
+    const name = sheetName || `costing-${caseId}`;
+    const res = await fetch(`${BASE}/cases/${caseId}/costing/export?sheet=${encodeURIComponent(name)}`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error("Failed to export costing to Excel");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${name.replace(/\//g, "-")}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
   listFollowups: (caseId) =>
     fetch(`${BASE}/cases/${caseId}/followups`, { headers: authHeaders() }).then(handle),
 

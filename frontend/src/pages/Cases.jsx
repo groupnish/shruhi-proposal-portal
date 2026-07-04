@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api.js";
 import CustomerPicker from "../components/CustomerPicker.jsx";
@@ -58,6 +58,53 @@ function ReferenceCell({ c, onSaved }) {
   );
 }
 
+function EditCaseRow({ c, colSpan, onSaved, onCancel }) {
+  const [customer, setCustomer] = useState({ id: c.customer_id, name: c.customer_name, code: c.customer_code });
+  const [requirement, setRequirement] = useState(c.requirement_text || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function save() {
+    setError("");
+    if (!customer?.id) { setError("Select a customer"); return; }
+    setSaving(true);
+    try {
+      const updated = await api.updateCase(c.id, { customer: { id: customer.id }, requirement_text: requirement });
+      onSaved(updated);
+    } catch (err) {
+      setError(err.message || "Failed to save changes");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <tr onClick={(e) => e.stopPropagation()} style={{ background: "var(--panel-2)", borderBottom: "1px solid var(--line-soft)" }}>
+      <td colSpan={colSpan} style={{ padding: 16 }}>
+        <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap" }}>
+          <div style={{ minWidth: 240 }}>
+            <label className="fl">Customer</label>
+            <CustomerPicker value={customer} onChange={setCustomer} />
+          </div>
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <label className="fl">Requirement</label>
+            <textarea rows={2} value={requirement} onChange={(e) => setRequirement(e.target.value)} />
+          </div>
+          <div style={{ display: "flex", gap: 8, paddingTop: 20 }}>
+            <button className="btn-primary" onClick={save} disabled={saving} style={{ padding: "7px 14px", fontSize: 12.5 }}>
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button className="btn-ghost" onClick={onCancel} style={{ padding: "7px 14px", fontSize: 12.5 }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+        {error && <div style={{ color: "var(--red)", fontSize: 12.5, marginTop: 8 }}>{error}</div>}
+      </td>
+    </tr>
+  );
+}
+
 export default function Cases({ user }) {
   const navigate = useNavigate();
   const [cases, setCases] = useState([]);
@@ -102,8 +149,21 @@ export default function Cases({ user }) {
   }
   useEffect(() => { refresh(); }, []);
 
+  const isAdmin = user?.role === "admin";
+  const [editingId, setEditingId] = useState(null);
+
   function patchCase(updated) {
     setCases((prev) => prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c)));
+  }
+
+  async function handleDeleteCase(id, reference) {
+    if (!window.confirm(`Permanently delete case ${reference || `#${id}`}? This deletes all its costing lines, offers, and history. This can't be undone.`)) return;
+    try {
+      await api.deleteCase(id);
+      setCases((prev) => prev.filter((c) => c.id !== id));
+    } catch (err) {
+      alert(err.message || "Failed to delete case");
+    }
   }
 
   async function submit(e) {
@@ -276,14 +336,15 @@ export default function Cases({ user }) {
                 <th style={th}>Schedule</th>
                 <th style={th}>Actual</th>
                 <th style={th}>Created</th>
+                {isAdmin && <th style={th}>Actions</th>}
               </tr>
             </thead>
             <tbody>
               {tabCases.map((c) => {
                 const meta = stageMeta(c.stage);
                 return (
+                  <Fragment key={c.id}>
                   <tr
-                    key={c.id}
                     onClick={() => navigate(`/cases/${c.id}`)}
                     style={{ borderBottom: "1px solid var(--line-soft)", cursor: "pointer" }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = "var(--panel-2)")}
@@ -334,7 +395,36 @@ export default function Cases({ user }) {
                     </td>
                     <td style={{ ...td, color: "var(--text-dim)", whiteSpace: "nowrap" }}>{shortDate(c.offer_prepared_at)}</td>
                     <td style={{ ...td, color: "var(--text-dim)", whiteSpace: "nowrap" }}>{shortDate(c.created_at)}</td>
+                    {isAdmin && (
+                      <td style={td} onClick={(e) => e.stopPropagation()}>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button
+                            className="btn-ghost"
+                            onClick={() => setEditingId(editingId === c.id ? null : c.id)}
+                            style={{ padding: "4px 9px", fontSize: 11, whiteSpace: "nowrap" }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="btn-ghost"
+                            onClick={() => handleDeleteCase(c.id, c.reference)}
+                            style={{ padding: "4px 9px", fontSize: 11, whiteSpace: "nowrap", color: "var(--red)" }}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
+                  {isAdmin && editingId === c.id && (
+                    <EditCaseRow
+                      c={c}
+                      colSpan={isAdmin ? 11 : 10}
+                      onSaved={(updated) => { patchCase(updated); setEditingId(null); }}
+                      onCancel={() => setEditingId(null)}
+                    />
+                  )}
+                  </Fragment>
                 );
               })}
             </tbody>

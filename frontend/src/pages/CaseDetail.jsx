@@ -560,6 +560,15 @@ export default function CaseDetail({ user }) {
     }
   }
 
+  async function handleExportExcel() {
+    const latestRef = offers[0]?.ref || caseData.reference || `CASE-${String(caseData.id).padStart(4, "0")}`;
+    try {
+      await api.downloadCostingExcel(id, latestRef);
+    } catch (err) {
+      alert(err.message || "Failed to export costing to Excel");
+    }
+  }
+
   async function moveStage(stage) {
     await api.updateStage(id, stage);
     refresh();
@@ -712,6 +721,13 @@ export default function CaseDetail({ user }) {
             className={mode === "manual" ? "btn-primary" : "btn-ghost"}
             style={{ padding: "7px 14px", fontSize: 12.5 }}
           >Manual entry</button>
+          <button
+            onClick={handleExportExcel}
+            className="btn-ghost"
+            disabled={!items.length}
+            style={{ padding: "7px 14px", fontSize: 12.5, marginLeft: "auto" }}
+            title={!items.length ? "Add at least one costing line first" : "Download all costing lines as an Excel file"}
+          >Export to Excel</button>
         </div>
         {mode === "catalog" ? (
           <>

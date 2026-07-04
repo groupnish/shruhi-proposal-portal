@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { query, pool } from "../db.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
 import { createCaseWithinTransaction } from "../cases/createCaseWithinTransaction.js";
 
 const router = Router();
@@ -92,6 +92,45 @@ router.get("/:id", async (req, res) => {
   )).rows;
 
   res.json({ ...caseRow, events, costing_items: costingItems, followups });
+});
+
+// PATCH /api/cases/:id — admin-only edit of the core fields set at
+// creation (which customer this case is linked to, and the requirement
+// text) that nothing else lets you change after the fact. Everything else
+// editable post-creation (segment, inquiry type, dates, stage) already has
+// its own endpoint above.
+router.patch("/:id", requireRole("admin"), async (req, res) => {
+  const { customer, requirement_text } = req.body;
+  if (customer && !customer.id) {
+    return res.status(400).json({ error: "customer.id is required to change the linked customer" });
+  }
+
+  const sets = [];
+  const vals = [];
+  let i = 1;
+  if (customer?.id) { sets.push(`customer_id = $${i}`); vals.push(customer.id); i++; }
+  if (requirement_text !== undefined) { sets.push(`requirement_text = $${i}`); vals.push(requirement_text); i++; }
+  if (!sets.length) return res.status(400).json({ error: "No updatable fields provided" });
+  vals.push(req.params.id);
+
+  const { rows } = await query(
+    `UPDATE cases SET ${sets.join(", ")} WHERE id = $${i}
+     RETURNING *, (SELECT name FROM customers WHERE id = cases.customer_id) AS customer_name`,
+    vals
+  );
+  if (!rows[0]) return res.status(404).json({ error: "Case not found" });
+  res.json(rows[0]);
+});
+
+// DELETE /api/cases/:id — admin-only, hard delete. Every dependent table
+// (case_events, costing_items, offers, case_followups, reminders) cascades
+// automatically; inbound_inquiries.created_case_id is set to NULL instead
+// of blocking the delete (see migration 015), so a case that started as a
+// converted email inquiry can still be removed.
+router.delete("/:id", requireRole("admin"), async (req, res) => {
+  const { rows } = await query(`DELETE FROM cases WHERE id = $1 RETURNING id`, [req.params.id]);
+  if (!rows[0]) return res.status(404).json({ error: "Case not found" });
+  res.status(204).end();
 });
 
 // PATCH /api/cases/:id/stage — body: { stage, note? }
