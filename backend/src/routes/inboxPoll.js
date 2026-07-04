@@ -23,7 +23,23 @@ router.all("/poll-inbox", async (req, res) => {
   }
 
   try {
-    const result = await pollInbox();
+    // A silently-dropped connection (common with firewalls that block
+    // rather than reject unfamiliar IPs) can hang well past the internal
+    // greetingTimeout/socketTimeout, since those only apply once a TCP
+    // connection is already open. This outer race guarantees the request
+    // always gets a response within ~20s either way, which also makes a
+    // "genuinely stuck" connection distinguishable from a fast failure.
+    const result = await Promise.race([
+      pollInbox(),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(
+          "Timed out after 20s waiting for the mail server — this points to a network-level block " +
+          "(e.g. a firewall silently dropping the connection) rather than a wrong password or setting. " +
+          "Try connecting with the same host/port from a regular email client to confirm, or ask your host " +
+          "whether they block connections from cloud-hosting IP ranges."
+        )), 20000)
+      ),
+    ]);
     res.json({ ok: true, ...result });
   } catch (err) {
     console.error("[poll-inbox]", err);
