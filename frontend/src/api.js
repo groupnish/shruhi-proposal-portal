@@ -30,6 +30,10 @@ export const api = {
   getMyDashboard: () =>
     fetch(`${BASE}/dashboard/me`, { headers: authHeaders() }).then(handle),
 
+  // Admin-only — 403s for anyone else.
+  getTeamDashboard: () =>
+    fetch(`${BASE}/dashboard/team`, { headers: authHeaders() }).then(handle),
+
   login: (email, password) =>
     fetch(`${BASE}/auth/login`, {
       method: "POST",

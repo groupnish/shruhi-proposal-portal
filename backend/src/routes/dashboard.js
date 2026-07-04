@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { query } from "../db.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -73,6 +73,8 @@ router.get("/me", async (req, res) => {
   }
   pipeline.won = stageRows.filter((r) => r.stage === "won").length;
   pipeline.lost = stageRows.filter((r) => r.stage === "lost").length;
+  pipeline.total = stageRows.length;
+  const openCases = stageRows.filter((r) => r.stage !== "won" && r.stage !== "lost").length;
 
   // 2. Segment breakdown, this user's cases only.
   const segmentRows = (await query(
@@ -128,12 +130,73 @@ router.get("/me", async (req, res) => {
 
   res.json({
     pipeline,
+    open_cases: openCases,
     segments,
     forecast,
     needs_followup: needsFollowup,
     needs_followup_threshold_days: NEEDS_FOLLOWUP_DAYS,
     orders_received: { month: ordersThisMonth, fy: ordersThisFY },
   });
+});
+
+// GET /api/dashboard/team — admin-only. Per-user milestone pipeline
+// (same cumulative logic as /me) plus proposal punctuality: of the
+// user's cases that have BOTH a Schedule Date and an Actual Date
+// (offer_prepared_at), what percentage had the actual on or before the
+// scheduled date. Cases missing either date aren't counted toward
+// punctuality — there's nothing to compare yet.
+router.get("/team", requireRole("admin"), async (req, res) => {
+  const STAGE_ORDER = ["enquiry", "costing", "costing_complete", "offer_prepared", "offer_sent", "negotiation", "negotiation_complete", "won", "lost"];
+  const MILESTONES = ["costing_complete", "offer_prepared", "offer_sent", "negotiation_complete"];
+
+  const users = (await query(
+    `SELECT id, name FROM users WHERE status = 'active' ORDER BY name ASC`
+  )).rows;
+  const caseRows = (await query(
+    `SELECT assigned_sales_engineer AS user_id, stage, scheduled_offer_date, offer_prepared_at
+     FROM cases WHERE assigned_sales_engineer IS NOT NULL`
+  )).rows;
+
+  const casesByUser = {};
+  for (const c of caseRows) {
+    (casesByUser[c.user_id] ||= []).push(c);
+  }
+
+  const team = users.map((u) => {
+    const cases = casesByUser[u.id] || [];
+    const pipeline = {};
+    for (const milestone of MILESTONES) {
+      const idx = STAGE_ORDER.indexOf(milestone);
+      pipeline[milestone] = cases.filter((c) => STAGE_ORDER.indexOf(c.stage) >= idx).length;
+    }
+    const won = cases.filter((c) => c.stage === "won").length;
+    const lost = cases.filter((c) => c.stage === "lost").length;
+    const total = cases.length;
+    const open = total - won - lost;
+
+    // Compare date portions only — offer_prepared_at is a timestamp,
+    // scheduled_offer_date is a plain date, so an offer prepared later on
+    // the scheduled day itself must still count as on-time.
+    const measured = cases.filter((c) => c.scheduled_offer_date && c.offer_prepared_at);
+    const onTime = measured.filter((c) =>
+      new Date(c.offer_prepared_at).toISOString().slice(0, 10) <= new Date(c.scheduled_offer_date).toISOString().slice(0, 10)
+    );
+
+    return {
+      user_id: u.id,
+      user_name: u.name,
+      total,
+      open,
+      ...pipeline,
+      won,
+      lost,
+      punctuality_pct: measured.length ? Math.round((onTime.length / measured.length) * 100) : null,
+      punctuality_measured: measured.length,
+      punctuality_on_time: onTime.length,
+    };
+  });
+
+  res.json(team);
 });
 
 export default router;

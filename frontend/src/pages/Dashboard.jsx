@@ -51,11 +51,59 @@ function CaseLinkRow({ c, navigate, right }) {
   );
 }
 
+function TeamPipelineTable({ team }) {
+  const th = { textAlign: "left", padding: "8px 10px", fontSize: 10.5, textTransform: "uppercase", letterSpacing: 0.3, color: "var(--text-faint)", fontWeight: 600, whiteSpace: "nowrap" };
+  const td = { padding: "8px 10px", fontSize: 12.5, whiteSpace: "nowrap" };
+
+  if (!team.length) {
+    return <div style={{ fontSize: 12.5, color: "var(--text-faint)" }}>No active users with assigned cases yet.</div>;
+  }
+
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <thead>
+          <tr style={{ borderBottom: "1px solid var(--line)" }}>
+            <th style={th}>User</th>
+            <th style={th}>Total</th>
+            <th style={th}>Open</th>
+            {CASE_PROGRESS_STAGES.map((p) => <th key={p.stage} style={th}>{p.label}</th>)}
+            <th style={{ ...th, color: "var(--green)" }}>Won</th>
+            <th style={{ ...th, color: "var(--red)" }}>Lost</th>
+            <th style={th}>On-time %</th>
+          </tr>
+        </thead>
+        <tbody>
+          {team.map((u) => (
+            <tr key={u.user_id} style={{ borderBottom: "1px solid var(--line-soft)" }}>
+              <td style={{ ...td, fontWeight: 500 }}>{u.user_name}</td>
+              <td style={{ ...td, fontWeight: 600 }}>{u.total}</td>
+              <td style={td}>{u.open}</td>
+              {CASE_PROGRESS_STAGES.map((p) => <td key={p.stage} style={td}>{u[p.stage] || 0}</td>)}
+              <td style={{ ...td, color: "var(--green)", fontWeight: 600 }}>{u.won}</td>
+              <td style={{ ...td, color: "var(--red)", fontWeight: 600 }}>{u.lost}</td>
+              <td style={td}>
+                {u.punctuality_pct === null
+                  ? <span style={{ color: "var(--text-faint)" }}>—</span>
+                  : `${u.punctuality_pct}% (${u.punctuality_on_time}/${u.punctuality_measured})`}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function Dashboard({ user }) {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const isAdmin = user?.role === "admin";
+  const [teamData, setTeamData] = useState(null);
+  const [teamError, setTeamError] = useState("");
+  const [teamLoading, setTeamLoading] = useState(isAdmin);
 
   async function refresh() {
     setLoading(true);
@@ -68,7 +116,18 @@ export default function Dashboard({ user }) {
       setLoading(false);
     }
   }
-  useEffect(() => { refresh(); }, []);
+  async function refreshTeam() {
+    setTeamLoading(true);
+    setTeamError("");
+    try {
+      setTeamData(await api.getTeamDashboard());
+    } catch (err) {
+      setTeamError(err.message || "Failed to load team dashboard");
+    } finally {
+      setTeamLoading(false);
+    }
+  }
+  useEffect(() => { refresh(); if (isAdmin) refreshTeam(); }, []);
 
   return (
     <div style={{ maxWidth: 1040, margin: "0 auto", padding: "36px 24px 60px", width: "100%" }}>
@@ -91,16 +150,37 @@ export default function Dashboard({ user }) {
       ) : (
         <>
           {/* Orders received — count + value, this month and current FY */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 22 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14, marginBottom: 22 }}>
+            <StatCard label="Open cases" value={data.open_cases} accent="#5d7188" />
             <StatCard label="Orders this month" value={data.orders_received.month.count} accent="#3fb950" />
             <StatCard label="Value this month" value={inr(data.orders_received.month.value)} accent="#3fb950" />
             <StatCard label="Orders this FY" value={data.orders_received.fy.count} accent="#1bb8b0" />
             <StatCard label="Value this FY" value={inr(data.orders_received.fy.value)} accent="#1bb8b0" />
           </div>
 
+          {isAdmin && (
+            <SectionCard title="Team pipeline (admin)">
+              {teamLoading ? (
+                <div style={{ fontSize: 12.5, color: "var(--text-faint)" }}>Loading…</div>
+              ) : teamError ? (
+                <div>
+                  <div style={{ color: "var(--red)", fontSize: 12.5, marginBottom: 10 }}>Couldn't load team data: {teamError}</div>
+                  <button className="btn-ghost" onClick={refreshTeam}>Retry</button>
+                </div>
+              ) : (
+                <TeamPipelineTable team={teamData || []} />
+              )}
+            </SectionCard>
+          )}
+
           {/* Pipeline — current stage distribution of open cases */}
           <SectionCard title="Your pipeline">
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>Total Cases</span>
+                <span style={{ fontSize: 13, fontWeight: 700 }}>{data.pipeline.total || 0}</span>
+              </div>
+              <div style={{ borderTop: "1px solid var(--line-soft)", margin: "2px 0" }} />
               {CASE_PROGRESS_STAGES.map((p) => {
                 const count = data.pipeline[p.stage] || 0;
                 return (
