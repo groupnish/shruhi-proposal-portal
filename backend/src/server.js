@@ -11,9 +11,12 @@ import customerRoutes from "./routes/customers.js";
 import offerRoutes from "./routes/offers.js";
 import userRoutes from "./routes/users.js";
 import { caseItemsRouter, itemRouter } from "./routes/costingItems.js";
+import { caseEmailsRouter } from "./routes/caseEmails.js";
 import inquiryRoutes from "./routes/inquiries.js";
 import inboxPollRoutes from "./routes/inboxPoll.js";
 import dashboardRoutes from "./routes/dashboard.js";
+import seedDemoRoutes from "./routes/seedDemo.js";
+import caseImportRoutes from "./routes/caseImport.js";
 
 dotenv.config();
 
@@ -58,6 +61,7 @@ async function main() {
   app.get("/api/health", (req, res) => res.json({ ok: true }));
   app.use("/api/auth", authRoutes);
   app.use("/api/cases/:caseId/costing", caseItemsRouter);
+  app.use("/api/cases/:caseId/emails", caseEmailsRouter);
   app.use("/api/costing", itemRouter);
   app.use("/api/catalog", catalogRoutes);
   app.use("/api/customers", customerRoutes);
@@ -65,7 +69,9 @@ async function main() {
   app.use("/api/cases", caseRoutes);
   app.use("/api/inquiries", inquiryRoutes);
   app.use("/api/internal", inboxPollRoutes);
+  app.use("/api/internal", seedDemoRoutes);
   app.use("/api/dashboard", dashboardRoutes);
+  app.use("/api/import", caseImportRoutes);
   // Mounted last and deliberately broad (defines its own full sub-paths
   // like /cases/:id/offer, /offers/:id/pdf) — this must come after every
   // more specific /api/... mount above. offers.js applies requireAuth to

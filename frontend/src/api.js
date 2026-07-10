@@ -27,6 +27,9 @@ async function handle(res) {
 }
 
 export const api = {
+  getMyProfile: () =>
+    fetch(`${BASE}/auth/me`, { headers: authHeaders() }).then(handle),
+
   getMyDashboard: () =>
     fetch(`${BASE}/dashboard/me`, { headers: authHeaders() }).then(handle),
 
@@ -105,6 +108,9 @@ export const api = {
 
   searchCustomers: (q) =>
     fetch(`${BASE}/customers?q=${encodeURIComponent(q || "")}`, { headers: authHeaders() }).then(handle),
+
+  getCustomer: (id) =>
+    fetch(`${BASE}/customers/${id}`, { headers: authHeaders() }).then(handle),
 
   createCustomer: (payload) =>
     fetch(`${BASE}/customers`, {
@@ -205,6 +211,36 @@ export const api = {
   listFollowups: (caseId) =>
     fetch(`${BASE}/cases/${caseId}/followups`, { headers: authHeaders() }).then(handle),
 
+  downloadImportTemplate: async () => {
+    const res = await fetch(`${BASE}/import/template`, { headers: authHeaders() });
+    if (!res.ok) throw new Error("Failed to download the import template");
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "case-import-template.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
+  // multipart upload — deliberately not using the JSON `handle()` helper
+  // since this sends FormData, not a JSON body.
+  previewImport: async (file) => {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch(`${BASE}/import/preview`, { method: "POST", headers: authHeaders(), body: form });
+    return handle(res);
+  },
+
+  commitImport: (rows, filename) =>
+    fetch(`${BASE}/import/commit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ rows, filename }),
+    }).then(handle),
+
   addFollowup: (caseId, payload) =>
     fetch(`${BASE}/cases/${caseId}/followups`, {
       method: "POST",
@@ -216,6 +252,21 @@ export const api = {
     fetch(`${BASE}/cases/followups/${followupId}`, { method: "DELETE", headers: authHeaders() }).then((r) => {
       if (!r.ok) throw new Error("Failed to delete follow-up");
     }),
+
+  listCaseEmails: (caseId) =>
+    fetch(`${BASE}/cases/${caseId}/emails`, { headers: authHeaders() }).then(handle),
+
+  // payload: { to, subject, body, offer_id? } — offer_id attaches that
+  // offer's PDF fresh at send time.
+  sendCaseEmail: (caseId, payload) =>
+    fetch(`${BASE}/cases/${caseId}/emails/send`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  analyzeCaseEmail: (caseId, emailId) =>
+    fetch(`${BASE}/cases/${caseId}/emails/${emailId}/analyze`, { method: "POST", headers: authHeaders() }).then(handle),
 
   listInquiries: (status = "pending") =>
     fetch(`${BASE}/inquiries?status=${encodeURIComponent(status)}`, { headers: authHeaders() }).then(handle),
@@ -229,6 +280,9 @@ export const api = {
 
   dismissInquiry: (id) =>
     fetch(`${BASE}/inquiries/${id}/dismiss`, { method: "POST", headers: authHeaders() }).then(handle),
+
+  analyzeInquiry: (id) =>
+    fetch(`${BASE}/inquiries/${id}/analyze`, { method: "POST", headers: authHeaders() }).then(handle),
 
   listUsers: () => fetch(`${BASE}/users`, { headers: authHeaders() }).then(handle),
 

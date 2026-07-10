@@ -2,11 +2,13 @@ import { useState } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import Login from "./pages/Login.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import Tracker from "./pages/Tracker.jsx";
 import Cases from "./pages/Cases.jsx";
 import Inquiries from "./pages/Inquiries.jsx";
 import CaseDetail from "./pages/CaseDetail.jsx";
 import Customers from "./pages/Customers.jsx";
 import Users from "./pages/Users.jsx";
+import Import from "./pages/Import.jsx";
 import TopBar from "./components/TopBar.jsx";
 import Sidebar from "./components/Sidebar.jsx";
 
@@ -40,15 +42,17 @@ export default function App() {
     <div style={{ display: "flex", minHeight: "100vh" }}>
       <Sidebar user={user} />
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <TopBar user={user} onLogout={logout} title="Proposal Portal" />
+        <TopBar user={user} onLogout={logout} title={import.meta.env.VITE_PRODUCT_NAME || "ProposalFlow"} />
         <Routes>
           <Route path="/login" element={<Navigate to="/dashboard" />} />
           <Route path="/dashboard" element={<Dashboard user={user} />} />
+          <Route path="/tracker" element={<Tracker />} />
           <Route path="/inquiries" element={<Inquiries />} />
           <Route path="/cases" element={<Cases user={user} />} />
           <Route path="/cases/:id" element={<CaseDetail user={user} />} />
           <Route path="/customers" element={<Customers />} />
           <Route path="/users" element={isAdmin ? <Users /> : <Navigate to="/dashboard" />} />
+          <Route path="/import" element={isAdmin ? <Import /> : <Navigate to="/dashboard" />} />
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
       </div>

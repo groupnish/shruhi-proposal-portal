@@ -2,6 +2,8 @@ import { NavLink, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 import { SEGMENTS } from "../constants.js";
 
+const COMPANY_NAME = import.meta.env.VITE_COMPANY_NAME || "Your Company Name";
+
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: "\uD83D\uDCCA" },
   { to: "/inquiries", label: "Inbox", icon: "\uD83D\uDCE5" },
@@ -15,10 +17,12 @@ const NAV_ITEMS = [
     ],
   },
   { to: "/customers", label: "Customers", icon: "\uD83D\uDC65" },
+  { to: "/tracker", label: "Tracker", icon: "\uD83D\uDCC8" },
 ];
 
 const ADMIN_NAV_ITEMS = [
   { to: "/users", label: "Users", icon: "\uD83D\uDD10" },
+  { to: "/import", label: "Import Cases", icon: "\uD83D\uDCE5" },
 ];
 
 export default function Sidebar({ user }) {
@@ -34,9 +38,9 @@ export default function Sidebar({ user }) {
     }}>
       <div style={{ padding: "22px 20px 18px", borderBottom: "1px solid var(--line-soft)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src={logo} alt="Shruhi Instrumentation" style={{ height: 30, width: "auto" }} />
+          <img src={logo} alt={COMPANY_NAME} style={{ height: 30, width: "auto" }} />
           <div style={{ fontFamily: "var(--display)", fontWeight: 700, fontSize: 14, lineHeight: 1.15 }}>
-            Shruhi Instrumentation
+            {COMPANY_NAME}
           </div>
         </div>
       </div>
